@@ -18,11 +18,12 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 所有动作类的基类，封装了通用逻辑
- * <p>
- * 该抽象类提供了查找Java元素的通用方法，被其他具体的动作类继承。
- * 它定义了如何从光标位置开始查找Java元素（类、方法、字段或文档注释）的逻辑。
- * </p>
+ * 所有动作类的基类，封装了通用逻辑 <p> 该抽象类提供了查找Java元素的通用方法，被其他具体的动作类继承。 它定义了如何从光标位置开始查找Java元素（类、方法、字段或文档注释）的逻辑。 </p>
+ *
+ * @author haijun
+ * @date 2025-12-12 13:53:22
+ * @version 1.0.0
+ * @since 1.0.0
  */
 public abstract class AbstractEasyDocAction extends AnAction {
 
@@ -33,6 +34,8 @@ public abstract class AbstractEasyDocAction extends AnAction {
 
     /**
      * 延迟初始化注释处理器映射
+     *
+     * @since 1.0.0
      */
     private static void initProcessorMap() {
         if (PROCESSOR_MAP.isEmpty()) {
@@ -53,6 +56,7 @@ public abstract class AbstractEasyDocAction extends AnAction {
      *
      * @param file 文件
      * @return 对应的注释处理器
+     * @since 1.0.0
      */
     protected CommentProcessor getProcessor(PsiFile file) {
         if (file == null) {
@@ -69,6 +73,7 @@ public abstract class AbstractEasyDocAction extends AnAction {
      * @param file   当前文件
      * @param offset 光标位置偏移量
      * @return 第一个找到的Java元素或文档注释，如果未找到则返回null
+     * @since 1.0.0
      */
     protected PsiElement findFirstElementFromCaret(PsiFile file, int offset) {
         PsiElement element = file.findElementAt(offset);
@@ -114,6 +119,7 @@ public abstract class AbstractEasyDocAction extends AnAction {
      *
      * @param element 待检查的Psi元素
      * @return 如果元素匹配返回true，否则返回false
+     * @since 1.0.0
      */
     private boolean match(PsiElement element) {
         if (element == null) {
@@ -133,6 +139,7 @@ public abstract class AbstractEasyDocAction extends AnAction {
      * @param file 文件
      * @param editor 编辑器
      * @return 光标位置的元素
+     * @since 1.0.0
      */
     protected PsiElement getElementAtCaret(PsiFile file, Editor editor) {
         if (editor == null) {

@@ -11,10 +11,10 @@
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
     <description><![CDATA[
       <h2>Easy Tools - IDEA 开发效率工具集</h2>
-      <p>一款全面的生产力插件,通过强大的 JavaDoc 生成、AI 集成、API 管理和实用工具来增强 Java 开发体验。</p>
-      
+      <p>一款全面的生产力插件，通过强大的 JavaDoc 生成、AI 集成、API 管理和实用工具来增强开发体验。</p>
+
       <h3>✨ 核心功能</h3>
-      
+
       <h4>📝 1. JavaDoc 注释生成</h4>
       <ul>
         <li><b>双模式生成:</b>
@@ -44,7 +44,7 @@
           </ul>
         </li>
       </ul>
-      
+
       <h4>🤖 2. AI 智能集成</h4>
       <ul>
         <li><b>多提供商支持:</b>
@@ -68,7 +68,7 @@
           </ul>
         </li>
       </ul>
-      
+
       <h4>🌐 3. API 接口管理</h4>
       <ul>
         <li><b>API 扫描器:</b>
@@ -102,7 +102,7 @@
           </ul>
         </li>
       </ul>
-      
+
       <h4>🛠️ 4. 开发辅助工具</h4>
       <ul>
         <li><b>属性名称转换器:</b>
@@ -129,26 +129,26 @@
           </ul>
         </li>
       </ul>
-      
+
       <h3>⚙️ 配置说明</h3>
       <p>设置 → 其他设置 → Easy Config</p>
       <ul>
         <li>功能开关: 启用/禁用特定功能</li>
-        <li>Java Doc 配置: 自定义注释模板</li>
+        <li>Java Doc 配置: 自定义 Java 注释模板</li>
         <li>LLM 配置: 配置 AI 提供商和模型</li>
       </ul>
-      
+
       <h3>⌨️ 快捷键</h3>
       <ul>
-        <li><b>Alt+Shift+J:</b> 生成文件注释</li>
-        <li><b>Alt+J:</b> 生成元素注释</li>
+        <li><b>Alt+Shift+J:</b> 生成 Java 文件注释</li>
+        <li><b>Alt+J:</b> 生成 Java 元素注释</li>
         <li><b>Ctrl+Shift+U:</b> 转换属性命名</li>
         <li><b>Ctrl+\:</b> 快速 API 搜索</li>
       </ul>
-      
+
       <h3>🎯 使用场景</h3>
       <ul>
-        <li>在大型代码库中维护一致的 JavaDoc</li>
+        <li>在大型 Java/Python 代码库中维护一致的文档注释</li>
         <li>借助 AI 快速为遗留代码编写文档</li>
         <li>高效探索和导航 Spring MVC 接口</li>
         <li>在团队项目中统一命名规范</li>
@@ -164,6 +164,23 @@
     <extensions defaultExtensionNs="com.intellij">
         <!-- 注册项目视图节点装饰器，用于在文件列表中显示注释 -->
         <projectViewNodeDecorator implementation="io.github.easy.tools.comment.FileCommentDecorator"/>
+
+        <!-- 注册MyBatis Mapper接口的行标记提供者，用于显示导航图标 -->
+        <codeInsight.lineMarkerProvider language="JAVA"
+                                        implementationClass="io.github.easy.tools.ui.mybatis.MapperLineMarkerProvider"/>
+
+        <!-- 注册MyBatis XML SQL标签的行标记提供者，用于从 XML 跳转到 Mapper 接口方法 -->
+        <codeInsight.lineMarkerProvider language="XML"
+                                        implementationClass="io.github.easy.tools.ui.mybatis.XmlSqlTagLineMarkerProvider"/>
+
+        <!-- 注册MyBatis XML文件注解器，用于语法高亮 -->
+        <annotator language="XML"
+                   implementationClass="io.github.easy.tools.ui.mybatis.MyBatisXmlAnnotator"/>
+
+        <!-- 注册MyBatis XML参数引用贡献者，用于参数到Java字段的引用跳转 -->
+        <psi.referenceContributor language="XML"
+                                  implementation="io.github.easy.tools.ui.mybatis.MyBatisParamReferenceContributor"/>
+
     </extensions>
 
     <!-- Plugin metadata -->
@@ -178,7 +195,7 @@
       <li>自动提取和显示注释</li>
       <li>线程安全的 PSI 元素访问</li>
     </ul>
-    
+
     <h4>历史更新:</h4>
     <ul>
       <li>IDEA 右侧边栏的 API 接口管理面板</li>
@@ -232,6 +249,12 @@
         <listener class="io.github.easy.tools.action.doc.listener.FileCreationListener"
                   topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
     </applicationListeners>
+
+    <!-- 项目启动活动 -->
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- MyBatis Mapper XML文件扫描和监听 -->
+        <postStartupActivity implementation="io.github.easy.tools.listener.MapperXmlStartupActivity"/>
+    </extensions>
 
     <actions>
         <group id="JavaDocMenus" popup="true" description="Java Doc" text="Java Doc">
