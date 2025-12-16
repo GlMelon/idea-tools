@@ -77,6 +77,11 @@ public class MyBatisParamReferenceContributor extends PsiReferenceContributor {
     private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("[#$]\\{([^}]+)}");
 
     /**
+     * MyBatis include标签refid属性值提取正则 (提取refid="someId"中的someId)
+     */
+    private static final Pattern INCLUDE_REFID_PATTERN = Pattern.compile("^([a-zA-Z_$][a-zA-Z0-9_$]*)$");
+
+    /**
      * Register Reference Providers
      *
      * @param registrar registrar
@@ -156,9 +161,16 @@ public class MyBatisParamReferenceContributor extends PsiReferenceContributor {
 
         String tagName = tag.getName();
         String attrName = attribute.getName();
-        String valueText = attributeValue.getValue(); // 不包含引号
+        String valueText = attributeValue.getValue();
 
         if (StrUtil.isEmpty(valueText)) {
+            return;
+        }
+
+        // 特殊处理：include标签的refid属性
+        if ("include".equals(tagName) && "refid".equals(attrName)) {
+            Matcher matcher = INCLUDE_REFID_PATTERN.matcher(valueText);
+            this.extractReferencesFromPlaceholder(matcher, attributeValue, valueText, references);
             return;
         }
 
@@ -171,7 +183,8 @@ public class MyBatisParamReferenceContributor extends PsiReferenceContributor {
         // 注意：如果在 Strategy A 已经处理过，这里需要避免重复?
         // 通常 MyBatis 不会在 test="..." 里写 #{param}，所以两者通常互斥。
         // 但为了保险，我们可以都跑一遍，反正正则匹配不同。
-        this.extractReferencesFromPlaceholder(attributeValue, valueText, references);
+        Matcher matcher = PLACEHOLDER_PATTERN.matcher(valueText);
+        this.extractReferencesFromPlaceholder(matcher, attributeValue, valueText, references);
     }
 
     /**
@@ -208,7 +221,8 @@ public class MyBatisParamReferenceContributor extends PsiReferenceContributor {
         }
 
         // SQL 文本只处理 #{...} 和 ${...}
-        this.extractReferencesFromPlaceholder(token, text, references);
+        Matcher matcher = PLACEHOLDER_PATTERN.matcher(text);
+        this.extractReferencesFromPlaceholder(matcher, token, text, references);
     }
 
     /**
@@ -242,10 +256,10 @@ public class MyBatisParamReferenceContributor extends PsiReferenceContributor {
      * @param element    element
      * @param text       text
      * @param references references
+     * @param matcher matcher
      * @since 1.0.0
      */
-    private void extractReferencesFromPlaceholder(PsiElement element, String text, List<PsiReference> references) {
-        Matcher matcher = PLACEHOLDER_PATTERN.matcher(text);
+    private void extractReferencesFromPlaceholder(Matcher matcher, PsiElement element, String text, List<PsiReference> references) {
         int valueStartOffset = this.getValueStartOffset(element, text);
 
         while (matcher.find()) {

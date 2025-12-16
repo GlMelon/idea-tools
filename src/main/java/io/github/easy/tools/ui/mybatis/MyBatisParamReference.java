@@ -67,6 +67,12 @@ public class MyBatisParamReference extends PsiReferenceBase<PsiElement> {
      */
     @Override
     public @Nullable PsiElement resolve() {
+        // 特殊处理：如果是include标签的refid引用，直接跳转到对应的sql标签
+        XmlTag elementTag = MyBatisUtils.findParentTag(this.getElement());
+        if (elementTag != null && "include".equals(elementTag.getName())) {
+            return this.resolveIncludeRefId();
+        }
+
         String[] parts = this.fullExpression.split("\\.");
         if (parts.length < 1) {
             return null;
@@ -344,6 +350,20 @@ public class MyBatisParamReference extends PsiReferenceBase<PsiElement> {
             }
         }
 
+        return null;
+    }
+
+    /**
+     * 解析include标签的refid引用，跳转到对应的sql标签
+     *
+     * @return psi element
+     * @since 1.0.8
+     */
+    private @Nullable PsiElement resolveIncludeRefId() {
+        String refId = this.fullExpression;
+        if (StrUtil.isNotBlank(refId)) {
+            return MyBatisUtils.findSqlTagById(refId, this.getElement());
+        }
         return null;
     }
 }

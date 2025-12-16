@@ -181,6 +181,8 @@
         <psi.referenceContributor language="XML"
                                   implementation="io.github.easy.tools.ui.mybatis.MyBatisParamReferenceContributor"/>
 
+        <completion.contributor language="XML"
+                                implementationClass="io.github.easy.tools.ui.mybatis.XmlValueCompletionContributor"/>
     </extensions>
 
     <!-- Plugin metadata -->
@@ -227,10 +229,14 @@
                 instance="io.github.easy.tools.ui.config.DocConfig"
                 id="io.github.easy.tools.ui.config.TemplateConfig"
                 displayName="Easy Config">
-            <configurable instance="io.github.easy.tools.ui.config.FeatureToggleConfig" id="io.github.easy.tools.ui.config.FeatureToggleConfig" displayName="Feature Toggle"/>
-            <configurable instance="io.github.easy.tools.ui.config.DocConfig" id="io.github.easy.tools.ui.config.BaseTemplateConfig" displayName="Java Doc Config"/>
-            <configurable instance="io.github.easy.tools.ui.config.LLMConfig" id="io.github.easy.tools.ui.config.LLMConfig" displayName="LLM Config"/>
-            <configurable instance="io.github.easy.tools.ui.config.CodeGenConfig" id="io.github.easy.tools.ui.config.CodeGenConfig" displayName="AI 代码生成配置"/>
+            <configurable instance="io.github.easy.tools.ui.config.FeatureToggleConfig"
+                          id="io.github.easy.tools.ui.config.FeatureToggleConfig" displayName="Feature Toggle"/>
+            <configurable instance="io.github.easy.tools.ui.config.DocConfig" id="io.github.easy.tools.ui.config.BaseTemplateConfig"
+                          displayName="Java Doc Config"/>
+            <configurable instance="io.github.easy.tools.ui.config.LLMConfig" id="io.github.easy.tools.ui.config.LLMConfig"
+                          displayName="LLM Config"/>
+            <configurable instance="io.github.easy.tools.ui.config.CodeGenConfig" id="io.github.easy.tools.ui.config.CodeGenConfig"
+                          displayName="AI 代码生成配置"/>
         </applicationConfigurable>
         <applicationService serviceImplementation="io.github.easy.tools.action.doc.listener.FileSaveListenerManager"/>
         <notificationGroup id="Easy Docs Notification Group"

@@ -39,7 +39,23 @@ public class FileCreationListener implements BulkFileListener {
     /**
      * Java注释处理器
      */
-    private static final JavaCommentProcessor JAVA_PROCESSOR = new JavaCommentProcessor();
+    private static volatile JavaCommentProcessor JAVA_PROCESSOR;
+
+    /**
+     * 获取Java注释处理器实例
+     * 
+     * @return JavaCommentProcessor实例
+     */
+    private static JavaCommentProcessor getJavaProcessor() {
+        if (JAVA_PROCESSOR == null) {
+            synchronized (FileCreationListener.class) {
+                if (JAVA_PROCESSOR == null) {
+                    JAVA_PROCESSOR = new JavaCommentProcessor();
+                }
+            }
+        }
+        return JAVA_PROCESSOR;
+    }
 
     /**
      * 文件系统事件发生后的回调
@@ -122,10 +138,10 @@ public class FileCreationListener implements BulkFileListener {
         PsiClass firstClass = classes[0];
         
         // 先删除IDEA模板生成的注释
-        JAVA_PROCESSOR.removeElementComment(psiFile, firstClass);
+        getJavaProcessor().removeElementComment(psiFile, firstClass);
         
         // 使用插件配置的模板生成新注释
         // 使用overwrite=false,因为上一步已经删除了注释
-        JAVA_PROCESSOR.generateElementComment(psiFile, firstClass, false);
+        getJavaProcessor().generateElementComment(psiFile, firstClass, false);
     }
 }

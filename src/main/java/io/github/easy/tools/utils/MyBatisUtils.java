@@ -127,6 +127,50 @@ public final class MyBatisUtils {
     }
 
     /**
+     * 在XML文件中根据ID查找sql标签（用于include标签的refid跳转）
+     *
+     * @param xmlFile XML文件
+     * @param id      SQL标签的ID
+     * @return 找到的sql标签，未找到返回null
+     * @since 1.0.8
+     */
+    public static @Nullable XmlTag findSqlTagById(@NotNull XmlFile xmlFile, @NotNull String id) {
+        XmlTag rootTag = xmlFile.getRootTag();
+        if (rootTag == null) {
+            return null;
+        }
+
+        // 遍历所有子标签，查找sql标签
+        for (XmlTag tag : rootTag.getSubTags()) {
+            // 只查找sql标签
+            if ("sql".equals(tag.getName())) {
+                String tagId = tag.getAttributeValue("id");
+                if (id.equals(tagId)) {
+                    return tag;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 在XML文件中根据ID查找sql标签（用于include标签的refid跳转）- 重载版本，支持从元素上下文查找
+     *
+     * @param id      SQL标签的ID
+     * @param context 上下文元素
+     * @return 找到的sql标签，未找到返回null
+     * @since 1.0.8
+     */
+    public static @Nullable XmlTag findSqlTagById(@NotNull String id, @NotNull PsiElement context) {
+        PsiFile psiFile = context.getContainingFile();
+        if (!(psiFile instanceof XmlFile xmlFile)) {
+            return null;
+        }
+        return findSqlTagById(xmlFile, id);
+    }
+
+    /**
      * 向上查找XML标签
      *
      * @param element PSI元素
@@ -191,6 +235,18 @@ public final class MyBatisUtils {
         }
 
         return null;
+    }
+
+    /**
+     * 解析参数对应的 Java 类 (PsiClass)。
+     *
+     * @param parameter parameter
+     * @param paramName param name
+     * @return psi class
+     * @since 1.1.0
+     */
+    public static @Nullable PsiClass resolveRootParamClass(@NotNull PsiParameter parameter, @NotNull String paramName) {
+        return PsiTypesUtil.getPsiClass(parameter.getType());
     }
 
     /**
