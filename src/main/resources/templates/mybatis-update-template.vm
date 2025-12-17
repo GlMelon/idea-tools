@@ -1,0 +1,15 @@
+<update id="${methodId}" parameterType="${parameterType}">
+    UPDATE ${tableName}
+    <set>
+#if($parameters && $parameters.size() > 0)
+#foreach($param in $parameters)
+        <if test="${param.name} != null">
+            ${param.columnName} = #{${param.name}},
+        </if>
+#end
+#end
+    </set>
+    <where>
+        <!-- TODO: 添加WHERE条件 -->
+    </where>
+</update>

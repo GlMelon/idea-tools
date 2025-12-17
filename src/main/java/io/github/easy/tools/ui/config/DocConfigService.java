@@ -3,15 +3,14 @@ package io.github.easy.tools.ui.config;
 import cn.hutool.core.date.DateUtil;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.PersistentStateComponent;
-
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
 import com.intellij.util.xmlb.XmlSerializerUtil;
 import io.github.easy.tools.constants.PromptConstants;
 import io.github.easy.tools.utils.TemplateUtils;
-import org.jetbrains.annotations.NotNull;
 import lombok.Data;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -19,47 +18,76 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 文档配置服务类
- * <p>
- * 该类负责管理文档生成相关的配置信息，包括模板、自定义参数等。
- * 使用IntelliJ平台的持久化机制来保存和加载配置。
- * </p>
+ * 文档配置服务类 <p> 该类负责管理文档生成相关的配置信息，包括模板、自定义参数等。 使用IntelliJ平台的持久化机制来保存和加载配置。 </p>
+ *
+ * @author haijun
+ * @date 2025-12-17 10:30:28
+ * @version 1.0.0
+ * @since 1.0.0
  */
 @Service(Service.Level.APP)
 @State(name = "EasyDocConfig", storages = @Storage("easy-doc-config.xml"))
 public final class DocConfigService implements PersistentStateComponent<DocConfigService> {
 
-    /** 作者参数名 */
+    /**
+     * PARAM AUTHOR
+     */
     public static final String PARAM_AUTHOR = "author";
-    /** 日期参数名 */
+    /**
+     * PARAM DATE
+     */
     public static final String PARAM_DATE = "date";
-    /** 版本参数名 */
+    /**
+     * PARAM VERSION
+     */
     public static final String PARAM_VERSION = "version";
-    /** 描述参数名 */
+    /**
+     * PARAM DESCRIPTION
+     */
     public static final String PARAM_DESCRIPTION = "description";
-    /** 起始版本参数名 */
+    /**
+     * PARAM SINCE
+     */
     public static final String PARAM_SINCE = "since";
-    /** 字符串工具类参数名 */
+    /**
+     * PARAM STR
+     */
     public static final String PARAM_STR = "str";
-    /** 参数列表参数名 */
+    /**
+     * PARAM PARAMETERS
+     */
     public static final String PARAM_PARAMETERS = "parameters";
-    /** 返回值类型参数名 */
+    /**
+     * PARAM RETURN TYPE
+     */
     public static final String PARAM_RETURN_TYPE = "returnType";
-    /** 返回值类型简单名称参数名 */
+    /**
+     * PARAM RETURN TYPE SIMPLE
+     */
     public static final String PARAM_RETURN_TYPE_SIMPLE = "returnTypeSimple";
-    /** 异常列表参数名 */
+    /**
+     * PARAM EXCEPTIONS
+     */
     public static final String PARAM_EXCEPTIONS = "exceptions";
-    /** 字段名称参数名 */
+    /**
+     * PARAM FIELD NAME
+     */
     public static final String PARAM_FIELD_NAME = "fieldName";
-    /** 字段类型参数名 */
+    /**
+     * PARAM FIELD TYPE
+     */
     public static final String PARAM_FIELD_TYPE = "fieldType";
-    /** 邮箱参数名 */
+    /**
+     * PARAM EMAIL
+     */
     public static final String PARAM_EMAIL = "email";
 
 
 
 
-    /** 类注释模板默认值 */
+    /**
+     * DEFAULT CLASS TEMPLATE
+     */
     public static final String DEFAULT_CLASS_TEMPLATE = """
             /**
              * ${description}
@@ -77,7 +105,9 @@ public final class DocConfigService implements PersistentStateComponent<DocConfi
              */
             """;
 
-    /** 方法注释模板默认值 */
+    /**
+     * DEFAULT METHOD TEMPLATE
+     */
     public static final String DEFAULT_METHOD_TEMPLATE = """
             /**
              * ${description}
@@ -95,10 +125,12 @@ public final class DocConfigService implements PersistentStateComponent<DocConfi
              */
             """;
 
-    /** 字段注释模板默认值 */
+    /**
+     * DEFAULT FIELD TEMPLATE
+     */
     public static final String DEFAULT_FIELD_TEMPLATE = """
             /**
-             * ${util.camelToWords($fieldName)} field of type ${fieldType}.
+             * ${util.camelToWords($fieldName)}.
              */
             """;
 
@@ -154,22 +186,30 @@ public final class DocConfigService implements PersistentStateComponent<DocConfi
 
     /**
      * 自定义变量实体，用于持久化存储自定义变量的名称、描述和值
+     *
+     * @author haijun
+     * @date 2025-12-17 10:30:28
+     * @version 1.0.0
+     * @since 1.0.0
      */
     @Data
     public static class CustomParam {
-        /** 变量名 */
+        /**
+         * name
+         */
         private String name;
-        /** 变量描述 */
+        /**
+         * description
+         */
         private String description;
-        /** 变量默认值 */
+        /**
+         * value
+         */
         private String value;
     }
 
     /**
-     * 获取基础参数列表
-     * <p>
-     * 基础参数包括作者名、当前日期和空描述，这些参数会在所有模板中使用。
-     * </p>
+     * 获取基础参数列表 <p> 基础参数包括作者名、当前日期和空描述，这些参数会在所有模板中使用。 </p>
      *
      * @return 基础参数列表 base parameters
      * @since y.y.y
@@ -186,10 +226,7 @@ public final class DocConfigService implements PersistentStateComponent<DocConfi
     }
 
     /**
-     * 获取基础模板参数（公共参数）
-     * <p>
-     * 包括作者名、当前日期、版本号等所有模板共用的基础参数
-     * </p>
+     * 获取基础模板参数（公共参数） <p> 包括作者名、当前日期、版本号等所有模板共用的基础参数 </p>
      *
      * @return 基础参数映射 base template parameters
      * @since y.y.y

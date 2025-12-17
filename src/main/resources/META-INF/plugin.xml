@@ -181,8 +181,10 @@
         <psi.referenceContributor language="XML"
                                   implementation="io.github.easy.tools.ui.mybatis.MyBatisParamReferenceContributor"/>
 
-        <completion.contributor language="XML"
-                                implementationClass="io.github.easy.tools.ui.mybatis.XmlValueCompletionContributor"/>
+        <!-- 注册MyBatis XML代码补全贡献者，用于参数智能提示 -->
+        <completion.contributor language="any"
+                                implementationClass="io.github.easy.tools.ui.mybatis.MyBatisXmlCompletionContributor"/>
+
     </extensions>
 
     <!-- Plugin metadata -->
@@ -295,8 +297,28 @@
                     description="删除当前文件注释"/>
         </group>
 
-        <group id="PropertyConversionGroup" text="属性转换" description="Property Conversion">
+        <group id="MyBatisActionGroup" text="MyBatis Action" description="MyBatis SQL Tag Generation" popup="true">
             <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="JavaDocMenus"/>
+            <action id="CreateSelectTagAction"
+                    class="io.github.easy.tools.action.mybatis.CreateSelectTagAction"
+                    text="创建Select方法"
+                    description="在XML中为选中的Mapper方法创建select标签"/>
+            <action id="CreateInsertTagAction"
+                    class="io.github.easy.tools.action.mybatis.CreateInsertTagAction"
+                    text="创建Insert方法"
+                    description="在XML中为选中的Mapper方法创建insert标签"/>
+            <action id="CreateUpdateTagAction"
+                    class="io.github.easy.tools.action.mybatis.CreateUpdateTagAction"
+                    text="创建Update方法"
+                    description="在XML中为选中的Mapper方法创建update标签"/>
+            <action id="CreateDeleteTagAction"
+                    class="io.github.easy.tools.action.mybatis.CreateDeleteTagAction"
+                    text="创建Delete方法"
+                    description="在XML中为选中的Mapper方法创建delete标签"/>
+        </group>
+
+        <group id="PropertyConversionGroup" text="属性转换" description="Property Conversion">
+            <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="MyBatisActionGroup"/>
             <action id="PropertyConversionAction"
                     class="io.github.easy.tools.action.conversion.PropertyConversionAction"
                     text="转换选中属性"

@@ -1,0 +1,15 @@
+<select id="${methodId}" resultType="${resultType}">
+    SELECT
+        *
+    FROM
+        ${tableName}
+    <where>
+#if($parameters && $parameters.size() > 0)
+#foreach($param in $parameters)
+        <if test="${param.name} != null">
+            AND ${param.columnName} = #{${param.name}}
+        </if>
+#end
+#end
+    </where>
+</select>

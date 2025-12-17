@@ -1,6 +1,5 @@
 package io.github.easy.tools.service.doc;
 
-import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.util.StrUtil;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
@@ -29,6 +28,7 @@ import io.github.easy.tools.ui.config.DocConfigService;
 import io.github.easy.tools.ui.config.LLMConfigState;
 import io.github.easy.tools.utils.NotificationUtil;
 import io.github.easy.tools.utils.StrConverter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.context.Context;
 
@@ -41,13 +41,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 /**
- * Java注释生成策略实现类
- * <p>
- * 该类实现了CommentGenerationStrategy接口，提供了Java文件注释生成的具体实现。
- * 支持类、方法、字段等元素的文档注释生成和删除功能。
- * 支持Velocity模板和AI生成两种模式。
- * </p>
+ * Java注释生成策略实现类 <p> 该类实现了CommentGenerationStrategy接口，提供了Java文件注释生成的具体实现。 支持类、方法、字段等元素的文档注释生成和删除功能。 支持Velocity模板和AI生成两种模式。 </p>
+ *
+ * @author haijun
+ * @date 2025-12-16 18:32:07
+ * @version 1.0.0
+ * @since 1.0.0
  */
+@Slf4j
 public class JavaCommentGenerationStrategy implements CommentGenerationStrategy {
 
     /**
@@ -84,6 +85,8 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
 
     /**
      * 构造函数，初始化LLM服务
+     *
+     * @since 1.0.0
      */
     public JavaCommentGenerationStrategy() {
         this.llmService = LLMService.getInstance();
@@ -115,6 +118,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
      * 为文件生成注释
      *
      * @param file 需要生成注释的文件
+     * @since 1.0.0
      */
     @Override
     public void generate(PsiFile file) {
@@ -128,6 +132,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
      *
      * @param file      需要生成注释的文件
      * @param overwrite 是否覆盖已存在的注释
+     * @since 1.0.0
      */
     @Override
     public void generate(PsiFile file, boolean overwrite) {
@@ -140,6 +145,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
      * 为文件生成注释（使用AI）
      *
      * @param file 需要生成注释的文件
+     * @since 1.0.0
      */
     public void generateByAi(PsiFile file) {
         WriteCommandAction.runWriteCommandAction(file.getProject(), () -> {
@@ -152,6 +158,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
      *
      * @param file    需要生成注释的文件
      * @param element 需要生成注释的元素
+     * @since 1.0.0
      */
     @Override
     public void generate(PsiFile file, PsiElement element) {
@@ -164,6 +171,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
      * @param file      需要生成注释的文件
      * @param element   需要生成注释的元素
      * @param overwrite 是否覆盖已存在的注释
+     * @since 1.0.0
      */
     @Override
     public void generate(PsiFile file, PsiElement element, boolean overwrite) {
@@ -175,6 +183,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
      *
      * @param file    需要生成注释的文件
      * @param element 需要生成注释的元素
+     * @since 1.0.0
      */
     public void generateByAi(PsiFile file, PsiElement element) {
         this.generate(file, element, true, true);
@@ -187,6 +196,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
      * @param element   需要生成注释的元素
      * @param overwrite 是否覆盖已存在的注释
      * @param useAi     是否使用AI生成
+     * @since 1.0.0
      */
     private void generate(PsiFile file, PsiElement element, boolean overwrite, boolean useAi) {
         if (useAi) {
@@ -204,6 +214,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
      * @param file      文件
      * @param element   元素
      * @param overwrite 是否覆盖
+     * @since 1.0.0
      */
     private void generateWithVelocity(PsiFile file, PsiElement element, boolean overwrite) {
         String doc = "";
@@ -225,7 +236,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
 
         Project project = file.getProject();
         PsiElementFactory elementFactory = JavaPsiFacade.getElementFactory(project);
-        PsiElement docCommentFromText = elementFactory.createDocCommentFromText(doc);
+        PsiElement docCommentFromText = elementFactory.createDocCommentFromText(StrUtil.trimEnd(doc));
 
         // 获取注释比较器
         DocCommentComparator comparator = COMMENT_COMPARATOR_MAP.get(file.getFileType().getName());
@@ -241,6 +252,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
      *
      * @param file    文件
      * @param element 元素
+     * @since 1.0.0
      */
     private void generateWithAi(PsiFile file, PsiElement element) {
         LLMConfigState configState = LLMConfigState.getInstance();
@@ -324,6 +336,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
      *
      * @param element 元素
      * @return 模板内容
+     * @since 1.0.0
      */
     private String getTemplateContent(PsiElement element) {
         DocConfigService config = DocConfigService.getInstance();
@@ -388,6 +401,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
      * @param project    项目实例
      * @param element    目标元素
      * @param docContent 注释内容
+     * @since 1.0.0
      */
     private void writeDoc(Project project, PsiElement element, PsiElement docContent) {
         WriteCommandAction.runWriteCommandAction(project, () -> {
@@ -397,31 +411,25 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
                     if (docComment != null) {
                         docComment.replace(docContent);
                     } else {
-                        psiJavaDocumentedElement.addBefore(docContent, psiJavaDocumentedElement.getFirstChild());
+                        element.addBefore(docContent, element.getFirstChild());
                     }
-                    
+
                     // 在注释写入后，注册非标准标签
                     this.registerNonStandardTags(project, docContent);
                 }
             } catch (Exception e) {
                 // 使用消息进行提示
-                e.printStackTrace();
+                log.error("写入注释时发生异常: " + e.getMessage());
             }
         });
     }
 
     /**
-     * 注册非标准标签
-     * <p>
-     * 从生成的注释内容中提取非标准标签，并注册到 JavadocDeclarationInspection 中，
-     * 避免IDEA对非标准标签产生警告。
-     * </p>
-     * <p>
-     * 该方法只在配置启用非标准标签支持时执行。
-     * </p>
+     * 注册非标准标签 <p> 从生成的注释内容中提取非标准标签，并注册到 JavadocDeclarationInspection 中， 避免IDEA对非标准标签产生警告。 </p> <p> 该方法只在配置启用非标准标签支持时执行。 </p>
      *
      * @param project    项目实例
      * @param docContent 注释内容
+     * @since 1.0.0
      */
     private void registerNonStandardTags(Project project, PsiElement docContent) {
         try {
@@ -430,7 +438,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
             if (!config.nonStandardDoc) {
                 return;
             }
-            
+
             // 如果是 PsiDocComment，注册其中的非标准标签
             if (docContent instanceof PsiDocComment) {
                 JavaDocTagRegistrarService.getInstance().registerTagsFromComment(project, (PsiDocComment) docContent);
@@ -441,12 +449,10 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
     }
 
     /**
-     * 删除文件中的所有注释
-     * <p>
-     * 删除指定文件中所有可注释元素的文档注释
-     * </p>
+     * 删除文件中的所有注释 <p> 删除指定文件中所有可注释元素的文档注释 </p>
      *
      * @param file 需要删除注释的文件
+     * @since 1.0.0
      */
     @Override
     public void remove(PsiFile file) {
@@ -461,6 +467,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
      * 递归删除元素及其子元素的注释
      *
      * @param element 要删除注释的元素
+     * @since 1.0.0
      */
     private void removeCommentsRecursively(PsiElement element) {
         if (element instanceof PsiJavaDocumentedElement psiJavaDocumentedElement) {
@@ -477,13 +484,11 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
     }
 
     /**
-     * 删除元素的注释
-     * <p>
-     * 删除指定元素的文档注释
-     * </p>
+     * 删除元素的注释 <p> 删除指定元素的文档注释 </p>
      *
      * @param file    需要删除注释的文件
      * @param element 需要删除注释的元素
+     * @since 1.0.0
      */
     @Override
     public void remove(PsiFile file, PsiElement element) {
@@ -506,6 +511,10 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
      * 文档处理器接口，定义了文档生成的方法
      *
      * @param <P> 处理的元素类型
+     * @author haijun
+     * @date 2025-12-16 18:32:08
+     * @version 1.0.0
+     * @since 1.0.0
      */
     private interface DocHandler<P extends PsiElement> {
         /**
@@ -514,6 +523,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
          * @param file    文件
          * @param element 元素
          * @return 生成的文档内容
+         * @since 1.0.0
          */
         String generateDoc(PsiFile file, P element);
     }
@@ -522,6 +532,10 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
      * 抽象文档处理器，提供了文档生成的通用实现
      *
      * @param <P> 处理的元素类型
+     * @author haijun
+     * @date 2025-12-16 18:32:08
+     * @version 1.0.0
+     * @since 1.0.0
      */
     private static abstract class AbstractDocHandler<P extends PsiElement> implements DocHandler<P> {
 
@@ -534,14 +548,12 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
         }
 
         /**
-         * 生成元素的文档
-         * <p>
-         * 获取模板参数并创建上下文，然后调用具体实现生成文档内容
-         * </p>
+         * 生成元素的文档 <p> 获取模板参数并创建上下文，然后调用具体实现生成文档内容 </p>
          *
          * @param file    文件
          * @param element 元素
          * @return 生成的文档内容
+         * @since 1.0.0
          */
         @Override
         public String generateDoc(PsiFile file, P element) {
@@ -557,14 +569,12 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
          * @param element 元素
          * @param context 上下文
          * @return 模板内容
+         * @since 1.0.0
          */
         protected abstract String doGenerateDoc(PsiFile file, P element, Context context);
 
         /**
-         * 构建 Velocity 上下文
-         * <p>
-         * 优化后的上下文构建，按照顺序添加：基础参数 -> 自定义参数 -> 元素特定参数
-         * </p>
+         * 构建 Velocity 上下文 <p> 优化后的上下文构建，按照顺序添加：基础参数 -> 自定义参数 -> 元素特定参数 </p>
          *
          * @param file    文件
          * @param element 元素
@@ -587,10 +597,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
         }
 
         /**
-         * 添加基础参数到上下文
-         * <p>
-         * 使用Stream API优化参数添加过程
-         * </p>
+         * 添加基础参数到上下文 <p> 使用Stream API优化参数添加过程 </p>
          *
          * @param context Velocity上下文
          * @param file    当前文件
@@ -601,10 +608,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
         }
 
         /**
-         * 添加自定义参数到上下文
-         * <p>
-         * 使用Stream API优化参数添加，仅处理有效的参数
-         * </p>
+         * 添加自定义参数到上下文 <p> 使用Stream API优化参数添加，仅处理有效的参数 </p>
          *
          * @param context Velocity上下文
          * @since 1.0.0
@@ -623,14 +627,12 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
          *
          * @param context Velocity上下文
          * @param element 当前处理的元素
+         * @since 1.0.0
          */
         protected abstract void addElementSpecificParameters(VelocityContext context, P element);
 
         /**
-         * 获取基础参数列表
-         * <p>
-         * 从配置中获取基础参数，并设置项目版本号
-         * </p>
+         * 获取基础参数列表 <p> 从配置中获取基础参数，并设置项目版本号 </p>
          *
          * @param file 文件
          * @return 基础参数列表
@@ -649,6 +651,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
          *
          * @param file 当前文件
          * @return 项目版本号
+         * @since 1.0.0
          */
         private String getProjectVersion(PsiFile file) {
             String version = "1.0.0";
@@ -676,14 +679,11 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
         }
 
         /**
-         * 从 pom.xml 内容中提取版本号
-         * <p>
-         * 支持解析形如 ${version} 的占位符，会从 properties 节点中读取对应的值。
-         * 如果版本号包含 ${propertyName} 格式的占位符，会递归解析直到获得最终值。
-         * </p>
+         * 从 pom.xml 内容中提取版本号 <p> 支持解析形如 ${version} 的占位符，会从 properties 节点中读取对应的值。 如果版本号包含 ${propertyName} 格式的占位符，会递归解析直到获得最终值。 </p>
          *
          * @param pomContent pom.xml 文件内容
          * @return 版本号
+         * @since 1.0.0
          */
         private String extractVersionFromPom(String pomContent) {
             String version = "1.0.0";
@@ -697,7 +697,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
                                 versionStart + "<version>".length(),
                                 versionEnd
                         ).trim();
-                        
+
                         // 检查是否包含占位符 ${propertyName}
                         version = this.resolvePlaceholder(version, pomContent);
                     }
@@ -707,73 +707,71 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
             }
             return version;
         }
-        
+
         /**
-         * 解析占位符，支持递归解析嵌套的占位符
-         * <p>
-         * 从 pom.xml 的 properties 节点中读取占位符对应的值。
-         * 支持形如 ${version}、${project.version}、${revision} 等格式。
-         * </p>
+         * 解析占位符，支持递归解析嵌套的占位符 <p> 从 pom.xml 的 properties 节点中读取占位符对应的值。 支持形如 ${version}、${project.version}、${revision} 等格式。 </p>
          *
          * @param value 可能包含占位符的值
          * @param pomContent pom.xml 文件内容
          * @return 解析后的值
+         * @since 1.0.0
          */
         private String resolvePlaceholder(String value, String pomContent) {
             if (value == null || !value.contains("${")) {
                 return value;
             }
-            
+
             // 提取占位符名称，如 ${version} -> version
             int startIdx = value.indexOf("${");
             int endIdx = value.indexOf("}", startIdx);
-            
+
             if (startIdx == -1 || endIdx == -1) {
                 return value;
             }
-            
+
             String placeholder = value.substring(startIdx + 2, endIdx);
-            
+
             // 从 properties 节点中查找对应的属性值
             String propertyValue = this.extractPropertyFromPom(pomContent, placeholder);
-            
+
             if (propertyValue != null) {
                 // 替换占位符
                 String result = value.substring(0, startIdx) + propertyValue + value.substring(endIdx + 1);
                 // 递归解析，以防属性值中也包含占位符
                 return this.resolvePlaceholder(result, pomContent);
             }
-            
+
             return value;
         }
-        
+
         /**
          * 从 pom.xml 的 properties 节点中提取指定属性的值
          *
          * @param pomContent pom.xml 文件内容
          * @param propertyName 属性名称
          * @return 属性值，如果未找到则返回 null
+         * @since 1.0.0
          */
         private String extractPropertyFromPom(String pomContent, String propertyName) {
             try {
                 // 查找 <properties> 节点
                 int propertiesStart = pomContent.indexOf("<properties>");
                 int propertiesEnd = pomContent.indexOf("</properties>");
-                
+
                 if (propertiesStart == -1 || propertiesEnd == -1) {
                     return null;
                 }
-                
+
                 // 提取 properties 节点内容
                 String propertiesContent = pomContent.substring(
                     propertiesStart + "<properties>".length(),
                     propertiesEnd
                 );
-                
+
                 // 查找指定属性的标签，如 <version>1.0.0</version>
                 String startTag = "<" + propertyName + ">";
                 String endTag = "</" + propertyName + ">";
-                
+
                 int propertyStart = propertiesContent.indexOf(startTag);
                 if (propertyStart != -1) {
                     int propertyEnd = propertiesContent.indexOf(endTag, propertyStart);
@@ -787,7 +785,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
             } catch (Exception e) {
                 // 解析失败，返回 null
             }
-            
+
             return null;
         }
     }
@@ -795,6 +793,11 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
 
     /**
      * 类文档处理器，处理类元素的文档生成
+     *
+     * @author haijun
+     * @date 2025-12-16 18:32:08
+     * @version 1.0.0
+     * @since 1.0.0
      */
     private static class ClassDocHandler extends AbstractDocHandler<PsiClass> {
 
@@ -805,6 +808,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
          * @param element 类元素
          * @param context 上下文
          * @return 类模板内容
+         * @since 1.0.0
          */
         @Override
         protected String doGenerateDoc(PsiFile file, PsiClass element, Context context) {
@@ -818,6 +822,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
          *
          * @param context Velocity上下文
          * @param element 类元素
+         * @since 1.0.0
          */
         @Override
         protected void addElementSpecificParameters(VelocityContext context, PsiClass element) {
@@ -848,6 +853,11 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
 
     /**
      * 方法文档处理器，处理方法元素的文档生成
+     *
+     * @author haijun
+     * @date 2025-12-16 18:32:08
+     * @version 1.0.0
+     * @since 1.0.0
      */
     private static class MethodDocHandler extends AbstractDocHandler<PsiMethod> {
 
@@ -858,6 +868,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
          * @param element 方法元素
          * @param context 上下文
          * @return 方法模板内容
+         * @since 1.0.0
          */
         @Override
         protected String doGenerateDoc(PsiFile file, PsiMethod element, Context context) {
@@ -870,6 +881,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
          *
          * @param context Velocity上下文
          * @param element 方法元素
+         * @since 1.0.0
          */
         @Override
         protected void addElementSpecificParameters(VelocityContext context, PsiMethod element) {
@@ -885,7 +897,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
 
                 // 使用新的convertClassName方法处理返回值名称划分
                 String className = returnClass != null ? returnClass.getName() : returnTypeText;
-                
+
                 // 去除泛型部分，只保留外层类型
                 // 例如：List<Q> -> List, Map<K,V> -> Map
                 String classNameWithoutGeneric = className;
@@ -893,7 +905,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
                 if (genericIndex > 0) {
                     classNameWithoutGeneric = className.substring(0, genericIndex);
                 }
-                
+
                 // 提取泛型参数部分用于构建返回值描述
                 // 例如：List<Q> -> Q, Map<K,V> -> K,V
                 String genericPart = "";
@@ -905,7 +917,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
                         genericPart = genericPart.replaceAll("\\s+", "").toLowerCase();
                     }
                 }
-                
+
                 String splitName = StrConverter.convertClassName(classNameWithoutGeneric);
                 // 构建lowerFirstName: 外层类型小写 + 泛型参数小写
                 // 例如：List<Q> -> listq, Map<K,V> -> mapkv
@@ -976,6 +988,11 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
 
     /**
      * 字段文档处理器，处理字段元素的文档生成
+     *
+     * @author haijun
+     * @date 2025-12-16 18:32:08
+     * @version 1.0.0
+     * @since 1.0.0
      */
     private static class FieldDocHandler extends AbstractDocHandler<PsiField> {
 
@@ -986,6 +1003,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
          * @param element 字段元素
          * @param context 上下文
          * @return 字段模板内容
+         * @since 1.0.0
          */
         @Override
         protected String doGenerateDoc(PsiFile file, PsiField element, Context context) {
@@ -998,6 +1016,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
          *
          * @param context Velocity上下文
          * @param element 字段元素
+         * @since 1.0.0
          */
         @Override
         protected void addElementSpecificParameters(VelocityContext context, PsiField element) {

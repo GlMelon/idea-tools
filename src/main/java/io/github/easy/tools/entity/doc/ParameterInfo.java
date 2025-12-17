@@ -47,4 +47,10 @@ public class ParameterInfo {
      */
     @Desc("参数的类型简单名称")
     private String simpleTypeName;
+
+    /**
+     * 数据库列名(下划线格式)
+     */
+    @Desc("数据库列名(下划线格式)")
+    private String columnName;
 }

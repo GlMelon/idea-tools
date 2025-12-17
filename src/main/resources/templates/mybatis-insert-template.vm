@@ -1,0 +1,21 @@
+<insert id="${methodId}" parameterType="${parameterType}">
+    INSERT INTO ${tableName}
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+#if($parameters && $parameters.size() > 0)
+#foreach($param in $parameters)
+        <if test="${param.name} != null">
+            ${param.columnName},
+        </if>
+#end
+#end
+    </trim>
+    <trim prefix="VALUES (" suffix=")" suffixOverrides=",">
+#if($parameters && $parameters.size() > 0)
+#foreach($param in $parameters)
+        <if test="${param.name} != null">
+            #{${param.name}},
+        </if>
+#end
+#end
+    </trim>
+</insert>
