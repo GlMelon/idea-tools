@@ -390,6 +390,9 @@ public class MyBatisXmlCompletionContributor extends CompletionContributor {
 
             PsiClass currentClass = MyBatisUtils.resolveRootParamClass(rootParam, rootParamName);
 
+            // 兼容泛型类型的获取，当子类指定父类的泛型时，需要解析实际类型
+            currentClass = MyBatisUtils.resolveActualClassFromType(currentClass);
+
             if (currentClass == null) {
                 return;
             }
@@ -452,10 +455,39 @@ public class MyBatisXmlCompletionContributor extends CompletionContributor {
                                              @NotNull String prefixPath,
                                              @NotNull CompletionResultSet result,
                                              boolean isInXmlAttribute) {
+            // 获取当前类的字段(不包括父类)
+            List<PsiField> ownFields = new ArrayList<>(Arrays.asList(psiClass.getFields()));
+            
             // 获取所有字段(包括父类)
             List<PsiField> allFields = new ArrayList<>(Arrays.asList(psiClass.getAllFields()));
-
-            for (PsiField field : allFields) {
+            
+            // 从所有字段中移除当前类的字段，得到父类字段
+            List<PsiField> parentFields = new ArrayList<>(allFields);
+            parentFields.removeAll(ownFields);
+            
+            // 先处理当前类的字段(优先级高)
+            this.processFields(ownFields, currentFieldName, prefixPath, result, isInXmlAttribute);
+            
+            // 再处理父类的字段(优先级低)
+            this.processFields(parentFields, currentFieldName, prefixPath, result, isInXmlAttribute);
+        }
+        
+        /**
+         * 处理字段列表
+         *
+         * @param fields           字段列表
+         * @param currentFieldName 当前字段名
+         * @param prefixPath       前缀路径
+         * @param result           结果集
+         * @param isInXmlAttribute 是否在XML属性中
+         * @since 1.0.0
+         */
+        private void processFields(@NotNull List<PsiField> fields,
+                                   @NotNull String currentFieldName,
+                                   @NotNull String prefixPath,
+                                   @NotNull CompletionResultSet result,
+                                   boolean isInXmlAttribute) {
+            for (PsiField field : fields) {
                 String fieldName = field.getName();
 
                 // 排除静态字段和特殊字段
