@@ -112,7 +112,7 @@ public class JavaDocCommentComparator implements DocCommentComparator {
      * @since 1.0.0
      */
     private String extractUserDescription(PsiDocComment docComment) {
-        StringBuilder description = new StringBuilder();
+        List<String> descriptionLines = new ArrayList<>();
         String commentText = docComment.getText();
         String[] lines = commentText.split("\n");
 
@@ -128,20 +128,15 @@ public class JavaDocCommentComparator implements DocCommentComparator {
                 break;
             }
 
-            // 提取描述内容
+            // 提取描述内容，保留原始行结构
             if (trimmedLine.startsWith("*")) {
                 String content = trimmedLine.substring(1).trim();
-                // 使用空格而不是换行符连接描述内容
-                if (description.length() > 0 && !StrUtil.isBlank(content)) {
-                    description.append(" ");
-                }
-                if (!StrUtil.isBlank(content)) {
-                    description.append(content);
-                }
+                // 保留每一行的内容，包括空行
+                descriptionLines.add(content);
             }
         }
 
-        return description.toString();
+        return String.join("\n", descriptionLines);
     }
 
     /**
@@ -153,12 +148,13 @@ public class JavaDocCommentComparator implements DocCommentComparator {
      * @since 1.0.0
      */
     private String replaceDescription(String newCommentText, String userDescription) {
-        // 简单的替换策略：将新注释中的第一行描述替换为用户的描述
+        // 简单的替换策略：将新注释中的描述部分替换为用户的描述，保留原有格式
         String[] lines = newCommentText.split("\n");
         StringBuilder result = new StringBuilder();
 
         boolean descriptionReplaced = false;
         boolean inTagSection = false;
+        boolean needsBlankLine = false;
 
         for (String line : lines) {
             String trimmedLine = line.trim();
@@ -178,13 +174,36 @@ public class JavaDocCommentComparator implements DocCommentComparator {
             // 检查是否进入标签区域
             if (trimmedLine.startsWith("* @") || trimmedLine.startsWith("*@")) {
                 inTagSection = true;
+                // 如果描述已替换且需要添加空行，在标签前添加
+                if (needsBlankLine) {
+                    result.append(" *").append("\n");
+                    needsBlankLine = false;
+                }
             }
 
             // 如果还未替换描述且遇到描述行
             if (!descriptionReplaced && !inTagSection && trimmedLine.startsWith("*")) {
-                // 添加用户的描述
-                result.append(" * ").append(userDescription).append("\n");
+                // 添加用户的描述，保留原有的多行格式
+                String[] descLines = userDescription.split("\n");
+                for (String descLine : descLines) {
+                    if (StrUtil.isBlank(descLine)) {
+                        result.append(" *").append("\n");
+                    } else {
+                        result.append(" * ").append(descLine).append("\n");
+                    }
+                }
                 descriptionReplaced = true;
+                needsBlankLine = true;
+                // 跳过新注释中的描述行，直到遇到标签或空行
+                continue;
+            }
+
+            // 跳过新注释中的其他描述行，但检查是否是空行
+            if (descriptionReplaced && !inTagSection) {
+                if (trimmedLine.equals("*")) {
+                    // 遇到空行，标记不需要额外添加空行了
+                    needsBlankLine = false;
+                }
                 continue;
             }
 
@@ -531,11 +550,18 @@ public class JavaDocCommentComparator implements DocCommentComparator {
             List<String> mergedOtherTags
     ) {
         StringBuilder out = new StringBuilder();
+        boolean hasDescription = false;
+        String lastLine = "";
+        
         for (String line : newCommentText.split("\n")) {
             String trimmed = line.trim();
             if (trimmed.equals("/**")) {
                 out.append(line).append("\n");
             } else if (trimmed.equals("*/")) {
+                // 如果有描述内容且最后一行不是空行，添加一个空行分隔
+                if (hasDescription && !lastLine.trim().equals("*")) {
+                    out.append(" *").append("\n");
+                }
                 // 按顺序添加所有标签
                 mergedParams.forEach(tag -> out.append(tag).append("\n"));
                 if (mergedReturn != null) {
@@ -548,6 +574,10 @@ public class JavaDocCommentComparator implements DocCommentComparator {
             } else if (!trimmed.startsWith("* @") && !trimmed.startsWith("*@")) {
                 // 保留描述行
                 out.append(line).append("\n");
+                lastLine = line;
+                if (trimmed.startsWith("*")) {
+                    hasDescription = true;
+                }
             }
         }
         return out.toString();
@@ -563,16 +593,27 @@ public class JavaDocCommentComparator implements DocCommentComparator {
      */
     private String reassembleSimpleComment(String newCommentText, List<String> mergedTagLines) {
         StringBuilder out = new StringBuilder();
+        boolean hasDescription = false;
+        String lastLine = "";
+        
         for (String line : newCommentText.split("\n")) {
             String trimmed = line.trim();
             if (trimmed.equals("/**")) {
                 out.append(line).append("\n");
             } else if (trimmed.equals("*/")) {
+                // 如果有描述内容且最后一行不是空行，添加一个空行分隔
+                if (hasDescription && !lastLine.trim().equals("*")) {
+                    out.append(" *").append("\n");
+                }
                 mergedTagLines.forEach(tag -> out.append(tag).append("\n"));
                 out.append(line);
                 break;
             } else if (!trimmed.startsWith("* @") && !trimmed.startsWith("*@")) {
                 out.append(line).append("\n");
+                lastLine = line;
+                if (trimmed.startsWith("*")) {
+                    hasDescription = true;
+                }
             }
         }
         return out.toString();

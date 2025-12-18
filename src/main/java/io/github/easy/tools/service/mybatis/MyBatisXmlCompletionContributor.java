@@ -1,4 +1,4 @@
-package io.github.easy.tools.ui.mybatis;
+package io.github.easy.tools.service.mybatis;
 
 import cn.hutool.core.util.StrUtil;
 import com.intellij.codeInsight.completion.CompletionContributor;
@@ -21,7 +21,6 @@ import com.intellij.psi.PsiAnnotationMemberValue;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiField;
-import com.intellij.psi.PsiLiteralExpression;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiParameter;
 import com.intellij.psi.javadoc.PsiDocComment;
@@ -468,17 +467,17 @@ public class MyBatisXmlCompletionContributor extends CompletionContributor {
                 if (StrUtil.isBlank(currentFieldName) || fieldName.startsWith(currentFieldName)) {
                     // 构建完整的路径
                     String fullPath = StrUtil.isBlank(prefixPath) ? fieldName : prefixPath + "." + fieldName;
-                    
+
                     // 提取字段描述
                     String fieldDescription = this.extractFieldDescription(field);
-                    
+
                     // 构建LookupElement
                     LookupElementBuilder builder = LookupElementBuilder
                             .create(fullPath)
                             .withIcon(AllIcons.Nodes.Field)
                             .withTypeText(field.getType().getPresentableText())
                             .withInsertHandler(new FieldInsertHandler(isInXmlAttribute));
-                    
+
                     // 如果有描述信息,添加到tailText中
                     if (StrUtil.isNotBlank(fieldDescription)) {
                         builder = builder.withTailText(" " + field.getType().getPresentableText() + " - " + fieldDescription, true);
@@ -490,13 +489,9 @@ public class MyBatisXmlCompletionContributor extends CompletionContributor {
                 }
             }
         }
-        
+
         /**
-         * 提取字段描述信息
-         * <p>
-         * 优先从Swagger的@Schema注解中读取description字段,
-         * 如果没有@Schema注解,则从字段的JavaDoc注释中提取描述
-         * </p>
+         * 提取字段描述信息 <p> 优先从Swagger的@Schema注解中读取description字段, 如果没有@Schema注解,则从字段的JavaDoc注释中提取描述 </p>
          *
          * @param field 字段
          * @return 字段描述信息,如果没有则返回空字符串
@@ -512,7 +507,7 @@ public class MyBatisXmlCompletionContributor extends CompletionContributor {
                     return description;
                 }
             }
-            
+
             // 2. 尝试从 Swagger 2.x @ApiModelProperty 注解获取描述
             PsiAnnotation apiModelPropertyAnnotation = field.getAnnotation("io.swagger.annotations.ApiModelProperty");
             if (apiModelPropertyAnnotation != null) {
@@ -521,7 +516,7 @@ public class MyBatisXmlCompletionContributor extends CompletionContributor {
                     return value;
                 }
             }
-            
+
             // 3. 尝试从JavaDoc注释中提取描述
             PsiDocComment docComment = field.getDocComment();
             if (docComment != null) {
@@ -530,10 +525,10 @@ public class MyBatisXmlCompletionContributor extends CompletionContributor {
                     return javadocDescription;
                 }
             }
-            
+
             return "";
         }
-        
+
         /**
          * 从JavaDoc注释中提取描述文本
          *
@@ -547,7 +542,7 @@ public class MyBatisXmlCompletionContributor extends CompletionContributor {
             if (descriptionElements.length == 0) {
                 return "";
             }
-            
+
             StringBuilder description = new StringBuilder();
             for (PsiElement element : descriptionElements) {
                 String text = element.getText().trim();
@@ -555,26 +550,26 @@ public class MyBatisXmlCompletionContributor extends CompletionContributor {
                     description.append(text).append(" ");
                 }
             }
-            
+
             String result = description.toString().trim();
             if (StrUtil.isBlank(result)) {
                 return "";
             }
-            
+
             // 清理HTML标签和多余空格
             result = result.replaceAll("<[^>]+>", "")
                     .replaceAll("\\s+", " ")
                     .trim();
-            
+
             // 限制描述长度,避免显示过长
             int maxLength = 100;
             if (result.length() > maxLength) {
                 result = result.substring(0, maxLength) + "...";
             }
-            
+
             return result;
         }
-        
+
         /**
          * 获取注解属性值
          *

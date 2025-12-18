@@ -2,6 +2,7 @@ package io.github.easy.tools.action.api;
 
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.project.Project;
 import io.github.easy.tools.ui.api.ApiSearchDialog;
@@ -65,6 +66,17 @@ public class ApiSearchAction extends AnAction {
         // 创建并显示API搜索对话框
         ApiSearchDialog dialog = new ApiSearchDialog(project);
         dialog.show();
+    }
+
+    /**
+     * 指定在后台线程更新动作状态
+     *
+     * @return 后台线程
+     * @since 1.0.0
+     */
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.BGT;
     }
 
     /**

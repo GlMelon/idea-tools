@@ -2,6 +2,7 @@ package io.github.easy.tools.action.conversion;
 
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Document;
@@ -170,6 +171,16 @@ public class PropertyConversionAction extends AnAction {
         public String getConvertedText() {
             return convertedText;
         }
+    }
+
+    /**
+     * 指定在后台线程更新动作状态
+     *
+     * @return 后台线程
+     */
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.BGT;
     }
 
     @Override

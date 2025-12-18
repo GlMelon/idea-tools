@@ -1,6 +1,7 @@
 package io.github.easy.tools.service.doc;
 
 import cn.hutool.core.util.StrUtil;
+import com.intellij.lang.ASTNode;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.command.WriteCommandAction;
@@ -14,8 +15,11 @@ import com.intellij.psi.PsiElementFactory;
 import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaDocumentedElement;
+import com.intellij.psi.PsiMember;
 import com.intellij.psi.PsiMethod;
+import com.intellij.psi.PsiModifierList;
 import com.intellij.psi.PsiParameter;
+import com.intellij.psi.PsiParserFacade;
 import com.intellij.psi.PsiTypeParameter;
 import com.intellij.psi.javadoc.PsiDocComment;
 import com.intellij.psi.util.PsiTypesUtil;
@@ -44,8 +48,8 @@ import java.util.stream.Stream;
  * Java注释生成策略实现类 <p> 该类实现了CommentGenerationStrategy接口，提供了Java文件注释生成的具体实现。 支持类、方法、字段等元素的文档注释生成和删除功能。 支持Velocity模板和AI生成两种模式。 </p>
  *
  * @author haijun
- * @date 2025-12-16 18:32:07
  * @version 1.0.0
+ * @date 2025-12-16 18:32:07
  * @since 1.0.0
  */
 @Slf4j
@@ -411,7 +415,28 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
                     if (docComment != null) {
                         docComment.replace(docContent);
                     } else {
-                        element.addBefore(docContent, element.getFirstChild());
+                        PsiElement anchor = element.getFirstChild();
+                        if (element instanceof PsiMember member) {
+                            PsiModifierList modifierList = member.getModifierList();
+                            if (modifierList != null) {
+                                anchor = modifierList;
+                            }
+                        }
+                        if (element instanceof PsiClass psiClass && psiClass.isEnum()) {
+                            /* * 特殊处理枚举类：使用 ASTNode 绕过 PsiClassImpl.addInternal
+                             * 这样可以避开它寻找分号并重定向锚点的逻辑
+                             */
+                            ASTNode parentNode = element.getNode();
+                            ASTNode anchorNode = anchor.getNode();
+                            ASTNode docNode = docContent.getNode();
+                            // 直接在底层 AST 树中插入注释
+                            parentNode.addChild(docNode, anchorNode);
+                            // AST 级操作不会自动加换行，需要手动补充一个空白节点
+                            PsiElement whiteSpace = PsiParserFacade.getInstance(project).createWhiteSpaceFromText("\n");
+                            parentNode.addChild(whiteSpace.getNode(), anchorNode);
+                        } else {
+                            element.addBefore(docContent, element.getFirstChild());
+                        }
                     }
 
                     // 在注释写入后，注册非标准标签
@@ -512,8 +537,8 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
      *
      * @param <P> 处理的元素类型
      * @author haijun
-     * @date 2025-12-16 18:32:08
      * @version 1.0.0
+     * @date 2025-12-16 18:32:08
      * @since 1.0.0
      */
     private interface DocHandler<P extends PsiElement> {
@@ -533,8 +558,8 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
      *
      * @param <P> 处理的元素类型
      * @author haijun
-     * @date 2025-12-16 18:32:08
      * @version 1.0.0
+     * @date 2025-12-16 18:32:08
      * @since 1.0.0
      */
     private static abstract class AbstractDocHandler<P extends PsiElement> implements DocHandler<P> {
@@ -711,7 +736,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
         /**
          * 解析占位符，支持递归解析嵌套的占位符 <p> 从 pom.xml 的 properties 节点中读取占位符对应的值。 支持形如 ${version}、${project.version}、${revision} 等格式。 </p>
          *
-         * @param value 可能包含占位符的值
+         * @param value      可能包含占位符的值
          * @param pomContent pom.xml 文件内容
          * @return 解析后的值
          * @since 1.0.0
@@ -747,7 +772,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
         /**
          * 从 pom.xml 的 properties 节点中提取指定属性的值
          *
-         * @param pomContent pom.xml 文件内容
+         * @param pomContent   pom.xml 文件内容
          * @param propertyName 属性名称
          * @return 属性值，如果未找到则返回 null
          * @since 1.0.0
@@ -764,8 +789,8 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
 
                 // 提取 properties 节点内容
                 String propertiesContent = pomContent.substring(
-                    propertiesStart + "<properties>".length(),
-                    propertiesEnd
+                        propertiesStart + "<properties>".length(),
+                        propertiesEnd
                 );
 
                 // 查找指定属性的标签，如 <version>1.0.0</version>
@@ -777,8 +802,8 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
                     int propertyEnd = propertiesContent.indexOf(endTag, propertyStart);
                     if (propertyEnd != -1) {
                         return propertiesContent.substring(
-                            propertyStart + startTag.length(),
-                            propertyEnd
+                                propertyStart + startTag.length(),
+                                propertyEnd
                         ).trim();
                     }
                 }
@@ -795,8 +820,8 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
      * 类文档处理器，处理类元素的文档生成
      *
      * @author haijun
-     * @date 2025-12-16 18:32:08
      * @version 1.0.0
+     * @date 2025-12-16 18:32:08
      * @since 1.0.0
      */
     private static class ClassDocHandler extends AbstractDocHandler<PsiClass> {
@@ -855,8 +880,8 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
      * 方法文档处理器，处理方法元素的文档生成
      *
      * @author haijun
-     * @date 2025-12-16 18:32:08
      * @version 1.0.0
+     * @date 2025-12-16 18:32:08
      * @since 1.0.0
      */
     private static class MethodDocHandler extends AbstractDocHandler<PsiMethod> {
@@ -990,8 +1015,8 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
      * 字段文档处理器，处理字段元素的文档生成
      *
      * @author haijun
-     * @date 2025-12-16 18:32:08
      * @version 1.0.0
+     * @date 2025-12-16 18:32:08
      * @since 1.0.0
      */
     private static class FieldDocHandler extends AbstractDocHandler<PsiField> {

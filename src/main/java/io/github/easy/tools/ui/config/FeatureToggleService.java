@@ -16,12 +16,14 @@ import org.jetbrains.annotations.Nullable;
  * 使用IDEA的持久化机制保存配置,在IDE重启后自动恢复。
  * </p>
  *
- * <p>功能列表：</p>
+ * <p>功能模块列表：</p>
  * <ul>
- *     <li>JavaDoc注释生成相关功能(6个)</li>
- *     <li>属性转换功能(1个)</li>
- *     <li>API管理功能(2个)</li>
- *     <li>项目视图功能(1个)</li>
+ *     <li>JavaDoc注释模块: 文档注释生成相关功能(6个开关)</li>
+ *     <li>MyBatis增强模块: XML编辑增强功能(6个开关)</li>
+ *     <li>API管理模块: Spring MVC接口管理功能(2个开关)</li>
+ *     <li>代码生成模块: AI驱动的代码生成功能(1个开关)</li>
+ *     <li>属性转换模块: 命名格式转换功能(1个开关)</li>
+ *     <li>项目视图模块: 项目树增强功能(1个开关)</li>
  * </ul>
  *
  * @author haijun
@@ -64,29 +66,79 @@ public final class FeatureToggleService implements PersistentStateComponent<Feat
      */
     public boolean removeFileCommentsEnabled = true;
 
-    // ========== 属性转换功能 ==========
+    // ========== MyBatis增强功能 ==========
 
     /**
-     * 属性转换功能开关
+     * MyBatis Mapper接口行标记功能开关
+     * <p>在Mapper接口中显示导航到XML的图标</p>
      */
-    public boolean propertyConversionEnabled = true;
+    public boolean mybatisMapperLineMarkerEnabled = true;
+
+    /**
+     * MyBatis XML SQL标签行标记功能开关
+     * <p>在XML SQL标签中显示导航到Mapper方法的图标</p>
+     */
+    public boolean mybatisXmlLineMarkerEnabled = true;
+
+    /**
+     * MyBatis XML语法高亮功能开关
+     * <p>为MyBatis XML标签提供语法高亮</p>
+     */
+    public boolean mybatisXmlAnnotatorEnabled = true;
+
+    /**
+     * MyBatis XML参数引用跳转功能开关
+     * <p>支持从XML参数引用跳转到Java字段定义</p>
+     */
+    public boolean mybatisParamReferenceEnabled = true;
+
+    /**
+     * MyBatis XML代码补全功能开关
+     * <p>在XML中提供Mapper方法参数的智能补全</p>
+     */
+    public boolean mybatisXmlCompletionEnabled = true;
+
+    /**
+     * MyBatis SQL标签生成功能开关
+     * <p>支持为Mapper方法生成select/insert/update/delete标签</p>
+     */
+    public boolean mybatisSqlTagGenerationEnabled = true;
 
     // ========== API管理功能 ==========
 
     /**
      * API管理工具窗口功能开关
+     * <p>右侧边栏的API接口管理面板</p>
      */
     public boolean apiManagerToolWindowEnabled = true;
 
     /**
      * API搜索功能开关
+     * <p>快速搜索和跳转Spring MVC接口</p>
      */
     public boolean apiSearchActionEnabled = true;
+
+    // ========== 代码生成功能 ==========
+
+    /**
+     * AI代码生成功能开关
+     * <p>基于数据库表结构的AI代码生成</p>
+     */
+    public boolean aiCodeGenerationEnabled = true;
+
+    // ========== 属性转换功能 ==========
+
+    /**
+     * 属性转换功能开关
+     * <p>在不同命名格式之间转换属性名</p>
+     */
+    public boolean propertyConversionEnabled = true;
 
     // ========== 项目视图功能 ==========
 
     /**
-     * 文件注释装饰器功能开关(项目树中显示注释)
+     * 文件注释装饰器功能开关
+     * <p>在项目树中显示文件和类的注释</p>
      */
     public boolean fileCommentDecoratorEnabled = true;
 
@@ -200,5 +252,65 @@ public final class FeatureToggleService implements PersistentStateComponent<Feat
 
     public void setFileCommentDecoratorEnabled(boolean fileCommentDecoratorEnabled) {
         this.fileCommentDecoratorEnabled = fileCommentDecoratorEnabled;
+    }
+
+    // ========== MyBatis增强功能 Getter/Setter ==========
+
+    public boolean isMybatisMapperLineMarkerEnabled() {
+        return this.mybatisMapperLineMarkerEnabled;
+    }
+
+    public void setMybatisMapperLineMarkerEnabled(boolean mybatisMapperLineMarkerEnabled) {
+        this.mybatisMapperLineMarkerEnabled = mybatisMapperLineMarkerEnabled;
+    }
+
+    public boolean isMybatisXmlLineMarkerEnabled() {
+        return this.mybatisXmlLineMarkerEnabled;
+    }
+
+    public void setMybatisXmlLineMarkerEnabled(boolean mybatisXmlLineMarkerEnabled) {
+        this.mybatisXmlLineMarkerEnabled = mybatisXmlLineMarkerEnabled;
+    }
+
+    public boolean isMybatisXmlAnnotatorEnabled() {
+        return this.mybatisXmlAnnotatorEnabled;
+    }
+
+    public void setMybatisXmlAnnotatorEnabled(boolean mybatisXmlAnnotatorEnabled) {
+        this.mybatisXmlAnnotatorEnabled = mybatisXmlAnnotatorEnabled;
+    }
+
+    public boolean isMybatisParamReferenceEnabled() {
+        return this.mybatisParamReferenceEnabled;
+    }
+
+    public void setMybatisParamReferenceEnabled(boolean mybatisParamReferenceEnabled) {
+        this.mybatisParamReferenceEnabled = mybatisParamReferenceEnabled;
+    }
+
+    public boolean isMybatisXmlCompletionEnabled() {
+        return this.mybatisXmlCompletionEnabled;
+    }
+
+    public void setMybatisXmlCompletionEnabled(boolean mybatisXmlCompletionEnabled) {
+        this.mybatisXmlCompletionEnabled = mybatisXmlCompletionEnabled;
+    }
+
+    public boolean isMybatisSqlTagGenerationEnabled() {
+        return this.mybatisSqlTagGenerationEnabled;
+    }
+
+    public void setMybatisSqlTagGenerationEnabled(boolean mybatisSqlTagGenerationEnabled) {
+        this.mybatisSqlTagGenerationEnabled = mybatisSqlTagGenerationEnabled;
+    }
+
+    // ========== 代码生成功能 Getter/Setter ==========
+
+    public boolean isAiCodeGenerationEnabled() {
+        return this.aiCodeGenerationEnabled;
+    }
+
+    public void setAiCodeGenerationEnabled(boolean aiCodeGenerationEnabled) {
+        this.aiCodeGenerationEnabled = aiCodeGenerationEnabled;
     }
 }

@@ -1,6 +1,7 @@
 package io.github.easy.tools.action.doc.actions;
 
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.psi.PsiFile;
 import io.github.easy.tools.service.doc.processor.CommentProcessor;
@@ -48,6 +49,16 @@ public class RemoveFileCommentsAction extends AbstractEasyDocAction {
      *
      * @param e 动作事件对象
      */
+    /**
+     * 指定在后台线程更新动作状态
+     *
+     * @return 后台线程
+     */
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.BGT;
+    }
+
     @Override
     public void update(@NotNull AnActionEvent e) {
         e.getPresentation().setEnabledAndVisible(

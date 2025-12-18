@@ -43,12 +43,23 @@ public class FeatureToggleConfig implements Configurable {
     private JCheckBox removeElementCommentsCheckBox;
     private JCheckBox removeFileCommentsCheckBox;
     
-    // 属性转换功能
-    private JCheckBox propertyConversionCheckBox;
+    // MyBatis增强功能
+    private JCheckBox mybatisMapperLineMarkerCheckBox;
+    private JCheckBox mybatisXmlLineMarkerCheckBox;
+    private JCheckBox mybatisXmlAnnotatorCheckBox;
+    private JCheckBox mybatisParamReferenceCheckBox;
+    private JCheckBox mybatisXmlCompletionCheckBox;
+    private JCheckBox mybatisSqlTagGenerationCheckBox;
     
     // API管理功能
     private JCheckBox apiManagerToolWindowCheckBox;
     private JCheckBox apiSearchActionCheckBox;
+    
+    // 代码生成功能
+    private JCheckBox aiCodeGenerationCheckBox;
+    
+    // 属性转换功能
+    private JCheckBox propertyConversionCheckBox;
     
     // 项目视图功能
     private JCheckBox fileCommentDecoratorCheckBox;
@@ -115,10 +126,25 @@ public class FeatureToggleConfig implements Configurable {
         
         contentPanel.add(Box.createVerticalStrut(15));
         
-        // 属性转换功能
-        contentPanel.add(createGroupPanel("属性转换功能 (Property Conversion Features)"));
-        propertyConversionCheckBox = createCheckBox("属性名称转换 (Property Name Conversion) - Ctrl+Shift+U");
-        contentPanel.add(createIndentedPanel(propertyConversionCheckBox));
+        // MyBatis增强功能
+        contentPanel.add(createGroupPanel("MyBatis增强功能 (MyBatis Enhancement Features)"));
+        mybatisMapperLineMarkerCheckBox = createCheckBox("Mapper接口行标记 (Mapper Interface Line Marker)");
+        contentPanel.add(createIndentedPanel(mybatisMapperLineMarkerCheckBox));
+        
+        mybatisXmlLineMarkerCheckBox = createCheckBox("XML SQL标签行标记 (XML SQL Tag Line Marker)");
+        contentPanel.add(createIndentedPanel(mybatisXmlLineMarkerCheckBox));
+        
+        mybatisXmlAnnotatorCheckBox = createCheckBox("XML语法高亮 (XML Syntax Highlighting)");
+        contentPanel.add(createIndentedPanel(mybatisXmlAnnotatorCheckBox));
+        
+        mybatisParamReferenceCheckBox = createCheckBox("XML参数引用跳转 (XML Parameter Reference Jump)");
+        contentPanel.add(createIndentedPanel(mybatisParamReferenceCheckBox));
+        
+        mybatisXmlCompletionCheckBox = createCheckBox("XML代码补全 (XML Code Completion)");
+        contentPanel.add(createIndentedPanel(mybatisXmlCompletionCheckBox));
+        
+        mybatisSqlTagGenerationCheckBox = createCheckBox("SQL标签生成 (SQL Tag Generation)");
+        contentPanel.add(createIndentedPanel(mybatisSqlTagGenerationCheckBox));
         
         contentPanel.add(Box.createVerticalStrut(15));
         
@@ -129,6 +155,20 @@ public class FeatureToggleConfig implements Configurable {
         
         apiSearchActionCheckBox = createCheckBox("API搜索 (API Search) - Ctrl+\\");
         contentPanel.add(createIndentedPanel(apiSearchActionCheckBox));
+        
+        contentPanel.add(Box.createVerticalStrut(15));
+        
+        // 代码生成功能
+        contentPanel.add(createGroupPanel("代码生成功能 (Code Generation Features)"));
+        aiCodeGenerationCheckBox = createCheckBox("AI代码生成 (AI Code Generation) - Ctrl+Shift+G");
+        contentPanel.add(createIndentedPanel(aiCodeGenerationCheckBox));
+        
+        contentPanel.add(Box.createVerticalStrut(15));
+        
+        // 属性转换功能
+        contentPanel.add(createGroupPanel("属性转换功能 (Property Conversion Features)"));
+        propertyConversionCheckBox = createCheckBox("属性名称转换 (Property Name Conversion) - Ctrl+Shift+U");
+        contentPanel.add(createIndentedPanel(propertyConversionCheckBox));
         
         contentPanel.add(Box.createVerticalStrut(15));
         
@@ -206,9 +246,16 @@ public class FeatureToggleConfig implements Configurable {
                 || generateElementCommentByAiCheckBox.isSelected() != service.isGenerateElementCommentByAiEnabled()
                 || removeElementCommentsCheckBox.isSelected() != service.isRemoveElementCommentsEnabled()
                 || removeFileCommentsCheckBox.isSelected() != service.isRemoveFileCommentsEnabled()
-                || propertyConversionCheckBox.isSelected() != service.isPropertyConversionEnabled()
+                || mybatisMapperLineMarkerCheckBox.isSelected() != service.isMybatisMapperLineMarkerEnabled()
+                || mybatisXmlLineMarkerCheckBox.isSelected() != service.isMybatisXmlLineMarkerEnabled()
+                || mybatisXmlAnnotatorCheckBox.isSelected() != service.isMybatisXmlAnnotatorEnabled()
+                || mybatisParamReferenceCheckBox.isSelected() != service.isMybatisParamReferenceEnabled()
+                || mybatisXmlCompletionCheckBox.isSelected() != service.isMybatisXmlCompletionEnabled()
+                || mybatisSqlTagGenerationCheckBox.isSelected() != service.isMybatisSqlTagGenerationEnabled()
                 || apiManagerToolWindowCheckBox.isSelected() != service.isApiManagerToolWindowEnabled()
                 || apiSearchActionCheckBox.isSelected() != service.isApiSearchActionEnabled()
+                || aiCodeGenerationCheckBox.isSelected() != service.isAiCodeGenerationEnabled()
+                || propertyConversionCheckBox.isSelected() != service.isPropertyConversionEnabled()
                 || fileCommentDecoratorCheckBox.isSelected() != service.isFileCommentDecoratorEnabled();
     }
 
@@ -221,7 +268,12 @@ public class FeatureToggleConfig implements Configurable {
         
         // 检查需要重启的功能
         if (apiManagerToolWindowCheckBox.isSelected() != service.isApiManagerToolWindowEnabled()
-                || fileCommentDecoratorCheckBox.isSelected() != service.isFileCommentDecoratorEnabled()) {
+                || fileCommentDecoratorCheckBox.isSelected() != service.isFileCommentDecoratorEnabled()
+                || mybatisMapperLineMarkerCheckBox.isSelected() != service.isMybatisMapperLineMarkerEnabled()
+                || mybatisXmlLineMarkerCheckBox.isSelected() != service.isMybatisXmlLineMarkerEnabled()
+                || mybatisXmlAnnotatorCheckBox.isSelected() != service.isMybatisXmlAnnotatorEnabled()
+                || mybatisParamReferenceCheckBox.isSelected() != service.isMybatisParamReferenceEnabled()
+                || mybatisXmlCompletionCheckBox.isSelected() != service.isMybatisXmlCompletionEnabled()) {
             needRestart = true;
         }
         
@@ -232,9 +284,16 @@ public class FeatureToggleConfig implements Configurable {
         service.setGenerateElementCommentByAiEnabled(generateElementCommentByAiCheckBox.isSelected());
         service.setRemoveElementCommentsEnabled(removeElementCommentsCheckBox.isSelected());
         service.setRemoveFileCommentsEnabled(removeFileCommentsCheckBox.isSelected());
-        service.setPropertyConversionEnabled(propertyConversionCheckBox.isSelected());
+        service.setMybatisMapperLineMarkerEnabled(mybatisMapperLineMarkerCheckBox.isSelected());
+        service.setMybatisXmlLineMarkerEnabled(mybatisXmlLineMarkerCheckBox.isSelected());
+        service.setMybatisXmlAnnotatorEnabled(mybatisXmlAnnotatorCheckBox.isSelected());
+        service.setMybatisParamReferenceEnabled(mybatisParamReferenceCheckBox.isSelected());
+        service.setMybatisXmlCompletionEnabled(mybatisXmlCompletionCheckBox.isSelected());
+        service.setMybatisSqlTagGenerationEnabled(mybatisSqlTagGenerationCheckBox.isSelected());
         service.setApiManagerToolWindowEnabled(apiManagerToolWindowCheckBox.isSelected());
         service.setApiSearchActionEnabled(apiSearchActionCheckBox.isSelected());
+        service.setAiCodeGenerationEnabled(aiCodeGenerationCheckBox.isSelected());
+        service.setPropertyConversionEnabled(propertyConversionCheckBox.isSelected());
         service.setFileCommentDecoratorEnabled(fileCommentDecoratorCheckBox.isSelected());
         
         // 动态控制API Manager工具窗口显示/隐藏(无需重启)
@@ -260,9 +319,16 @@ public class FeatureToggleConfig implements Configurable {
         generateElementCommentByAiCheckBox.setSelected(service.isGenerateElementCommentByAiEnabled());
         removeElementCommentsCheckBox.setSelected(service.isRemoveElementCommentsEnabled());
         removeFileCommentsCheckBox.setSelected(service.isRemoveFileCommentsEnabled());
-        propertyConversionCheckBox.setSelected(service.isPropertyConversionEnabled());
+        mybatisMapperLineMarkerCheckBox.setSelected(service.isMybatisMapperLineMarkerEnabled());
+        mybatisXmlLineMarkerCheckBox.setSelected(service.isMybatisXmlLineMarkerEnabled());
+        mybatisXmlAnnotatorCheckBox.setSelected(service.isMybatisXmlAnnotatorEnabled());
+        mybatisParamReferenceCheckBox.setSelected(service.isMybatisParamReferenceEnabled());
+        mybatisXmlCompletionCheckBox.setSelected(service.isMybatisXmlCompletionEnabled());
+        mybatisSqlTagGenerationCheckBox.setSelected(service.isMybatisSqlTagGenerationEnabled());
         apiManagerToolWindowCheckBox.setSelected(service.isApiManagerToolWindowEnabled());
         apiSearchActionCheckBox.setSelected(service.isApiSearchActionEnabled());
+        aiCodeGenerationCheckBox.setSelected(service.isAiCodeGenerationEnabled());
+        propertyConversionCheckBox.setSelected(service.isPropertyConversionEnabled());
         fileCommentDecoratorCheckBox.setSelected(service.isFileCommentDecoratorEnabled());
     }
 

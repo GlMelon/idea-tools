@@ -1,4 +1,4 @@
-package io.github.easy.tools.ui.mybatis;
+package io.github.easy.tools.service.mybatis;
 
 import cn.hutool.core.util.StrUtil;
 import com.intellij.openapi.project.Project;

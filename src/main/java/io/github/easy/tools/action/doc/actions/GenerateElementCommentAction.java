@@ -1,6 +1,7 @@
 package io.github.easy.tools.action.doc.actions;
 
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.psi.PsiElement;
@@ -47,6 +48,16 @@ public class GenerateElementCommentAction extends AbstractEasyDocAction {
 
         // 生成元素注释
         processor.generateElementComment(file, element);
+    }
+
+    /**
+     * 指定在后台线程更新动作状态
+     *
+     * @return 后台线程
+     */
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.BGT;
     }
 
     /**

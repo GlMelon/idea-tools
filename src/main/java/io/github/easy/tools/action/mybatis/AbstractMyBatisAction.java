@@ -3,6 +3,7 @@ package io.github.easy.tools.action.mybatis;
 import cn.hutool.core.util.StrUtil;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Editor;
@@ -111,6 +112,20 @@ public abstract class AbstractMyBatisAction extends AnAction {
 
         // 执行具体的标签生成逻辑
         this.generateSqlTag(project, xmlFile, method);
+    }
+
+    /**
+     * 指定在后台线程更新动作状态
+     * <p>
+     * 由于update方法需要访问PSI数据，必须在后台线程执行
+     * </p>
+     *
+     * @return 后台线程
+     * @since 1.0.0
+     */
+    @Override
+    public @NotNull ActionUpdateThread getActionUpdateThread() {
+        return ActionUpdateThread.BGT;
     }
 
     /**
