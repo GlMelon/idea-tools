@@ -136,6 +136,11 @@ public class JavaDocCommentComparator implements DocCommentComparator {
             }
         }
 
+        // 移除描述末尾的空行,避免重复添加空行
+        while (!descriptionLines.isEmpty() && StrUtil.isBlank(descriptionLines.get(descriptionLines.size() - 1))) {
+            descriptionLines.remove(descriptionLines.size() - 1);
+        }
+
         return String.join("\n", descriptionLines);
     }
 
@@ -552,14 +557,15 @@ public class JavaDocCommentComparator implements DocCommentComparator {
         StringBuilder out = new StringBuilder();
         boolean hasDescription = false;
         String lastLine = "";
+        boolean hasTags = !mergedParams.isEmpty() || mergedReturn != null || !mergedThrows.isEmpty() || !mergedOtherTags.isEmpty();
         
         for (String line : newCommentText.split("\n")) {
             String trimmed = line.trim();
             if (trimmed.equals("/**")) {
                 out.append(line).append("\n");
             } else if (trimmed.equals("*/")) {
-                // 如果有描述内容且最后一行不是空行，添加一个空行分隔
-                if (hasDescription && !lastLine.trim().equals("*")) {
+                // 如果有描述内容、有标签且最后一行不是空行，添加一个空行分隔
+                if (hasDescription && hasTags && !lastLine.trim().equals("*")) {
                     out.append(" *").append("\n");
                 }
                 // 按顺序添加所有标签
@@ -595,14 +601,15 @@ public class JavaDocCommentComparator implements DocCommentComparator {
         StringBuilder out = new StringBuilder();
         boolean hasDescription = false;
         String lastLine = "";
+        boolean hasTags = !mergedTagLines.isEmpty();
         
         for (String line : newCommentText.split("\n")) {
             String trimmed = line.trim();
             if (trimmed.equals("/**")) {
                 out.append(line).append("\n");
             } else if (trimmed.equals("*/")) {
-                // 如果有描述内容且最后一行不是空行，添加一个空行分隔
-                if (hasDescription && !lastLine.trim().equals("*")) {
+                // 如果有描述内容、有标签且最后一行不是空行，添加一个空行分隔
+                if (hasDescription && hasTags && !lastLine.trim().equals("*")) {
                     out.append(" *").append("\n");
                 }
                 mergedTagLines.forEach(tag -> out.append(tag).append("\n"));
