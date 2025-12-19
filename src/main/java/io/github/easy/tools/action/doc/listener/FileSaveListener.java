@@ -32,8 +32,22 @@ public class FileSaveListener implements FileDocumentManagerListener {
      */
     private static final Map<String, CommentProcessor> PROCESSOR_MAP = new HashMap<>();
 
-    static {
-        PROCESSOR_MAP.put("JAVA", new JavaCommentProcessor());
+    /**
+     * 获取注释处理器(延迟加载)
+     * <p>
+     * 使用延迟加载的方式创建处理器实例,避免在类初始化时依赖服务。
+     * </p>
+     *
+     * @param fileType 文件类型
+     * @return 对应的注释处理器
+     */
+    private static CommentProcessor getProcessor(String fileType) {
+        return PROCESSOR_MAP.computeIfAbsent(fileType, type -> {
+            if ("JAVA".equals(type)) {
+                return new JavaCommentProcessor();
+            }
+            return null;
+        });
     }
 
     /**
@@ -76,8 +90,8 @@ public class FileSaveListener implements FileDocumentManagerListener {
             return;
         }
 
-        // 获取注释处理器并异步生成注释（默认使用Velocity模板方式）
-        CommentProcessor processor = PROCESSOR_MAP.get(virtualFile.getFileType().getName());
+        // 获取注释处理器并异步生成注释(默认使用Velocity模板方式)
+        CommentProcessor processor = getProcessor(virtualFile.getFileType().getName());
         if (processor != null) {
             // 使用invokeLater将PSI修改操作推迟到保存操作完成后
             ApplicationManager.getApplication().invokeLater(() -> {

@@ -76,9 +76,9 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
     private static final AICommentProcessor AI_COMMENT_PROCESSOR = new AICommentProcessor();
 
     /**
-     * LLM服务实例
+     * LLM服务实例(延迟加载)
      */
-    private final LLMService llmService;
+    private LLMService llmService;
 
     /**
      * 静态初始化块，初始化注释比较器映射
@@ -88,12 +88,28 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
     }
 
     /**
-     * 构造函数，初始化LLM服务
+     * 构造函数
      *
      * @since 1.0.0
      */
     public JavaCommentGenerationStrategy() {
-        this.llmService = LLMService.getInstance();
+        // 不在构造函数中初始化LLMService,避免类初始化时依赖服务
+    }
+
+    /**
+     * 获取LLM服务实例(延迟加载)
+     * <p>
+     * 使用延迟加载的方式获取LLM服务实例,避免在类初始化时依赖服务。
+     * </p>
+     *
+     * @return LLM服务实例
+     * @since 1.0.0
+     */
+    private LLMService getLLMService() {
+        if (this.llmService == null) {
+            this.llmService = LLMService.getInstance();
+        }
+        return this.llmService;
     }
 
     /**
@@ -317,7 +333,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
 
         CompletableFuture.supplyAsync(() -> {
             try {
-                return this.llmService.sendRequest(request);
+                return this.getLLMService().sendRequest(request);
             } catch (Exception e) {
                 NotificationUtil.showError(project, "AI服务调用失败: " + e.getMessage());
                 return null;
@@ -694,23 +710,29 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
                     if (pomFile != null && pomFile.exists()) {
                         // 解析 pom.xml 文件获取版本号
                         String pomContent = new String(pomFile.contentsToByteArray());
-                        version = this.extractVersionFromPom(pomContent);
+                        version = this.extractVersionFromPom(pomContent, pomFile);
                     }
                 }
             } catch (Exception e) {
-                // 如果出现异常，使用默认版本号
+                // 如果出现异常,使用默认版本号
             }
             return version;
         }
 
         /**
-         * 从 pom.xml 内容中提取版本号 <p> 支持解析形如 ${version} 的占位符，会从 properties 节点中读取对应的值。 如果版本号包含 ${propertyName} 格式的占位符，会递归解析直到获得最终值。 </p>
+         * 从 pom.xml 内容中提取版本号
+         * <p>
+         * 支持解析形如 ${version} 的占位符,会从 properties 节点中读取对应的值。
+         * 如果版本号包含 ${propertyName} 格式的占位符,会递归解析直到获得最终值。
+         * 支持向上查找父模块的pom.xml中的属性定义。
+         * </p>
          *
          * @param pomContent pom.xml 文件内容
+         * @param pomFile    pom.xml 文件
          * @return 版本号
          * @since 1.0.0
          */
-        private String extractVersionFromPom(String pomContent) {
+        private String extractVersionFromPom(String pomContent, VirtualFile pomFile) {
             String version = "1.0.0";
             try {
                 // 简单的 XML 解析，提取 <version> 标签内容
@@ -723,8 +745,8 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
                                 versionEnd
                         ).trim();
 
-                        // 检查是否包含占位符 ${propertyName}
-                        version = this.resolvePlaceholder(version, pomContent);
+                        // 检查是否包含占位符 ${propertyName},支持向上查找父模块
+                        version = this.resolvePlaceholder(version, pomContent, pomFile);
                     }
                 }
             } catch (Exception e) {
@@ -734,14 +756,20 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
         }
 
         /**
-         * 解析占位符，支持递归解析嵌套的占位符 <p> 从 pom.xml 的 properties 节点中读取占位符对应的值。 支持形如 ${version}、${project.version}、${revision} 等格式。 </p>
+         * 解析占位符，支持递归解析嵌套的占位符和向上查找父模块
+         * <p>
+         * 从 pom.xml 的 properties 节点中读取占位符对应的值。
+         * 支持形如 ${version}、${project.version}、${revision} 等格式。
+         * 如果当前pom.xml中找不到对应的属性,会向上递归查找父模块的pom.xml。
+         * </p>
          *
          * @param value      可能包含占位符的值
          * @param pomContent pom.xml 文件内容
+         * @param pomFile    当前pom.xml文件
          * @return 解析后的值
          * @since 1.0.0
          */
-        private String resolvePlaceholder(String value, String pomContent) {
+        private String resolvePlaceholder(String value, String pomContent, VirtualFile pomFile) {
             if (value == null || !value.contains("${")) {
                 return value;
             }
@@ -756,14 +784,19 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
 
             String placeholder = value.substring(startIdx + 2, endIdx);
 
-            // 从 properties 节点中查找对应的属性值
+            // 从当前pom.xml的properties节点中查找对应的属性值
             String propertyValue = this.extractPropertyFromPom(pomContent, placeholder);
+
+            // 如果当前pom.xml中找不到,尝试向上查找父模块
+            if (propertyValue == null && pomFile != null) {
+                propertyValue = this.findPropertyInParentPom(pomFile, placeholder);
+            }
 
             if (propertyValue != null) {
                 // 替换占位符
                 String result = value.substring(0, startIdx) + propertyValue + value.substring(endIdx + 1);
-                // 递归解析，以防属性值中也包含占位符
-                return this.resolvePlaceholder(result, pomContent);
+                // 递归解析,以防属性值中也包含占位符
+                return this.resolvePlaceholder(result, pomContent, pomFile);
             }
 
             return value;
@@ -812,6 +845,58 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
             }
 
             return null;
+        }
+
+        /**
+         * 在父模块的pom.xml中查找属性值
+         * <p>
+         * 递归向上查找父模块,直到找到对应的属性定义或到达根目录。
+         * 这样可以支持在父模块中定义的占位符变量,如${revision}。
+         * </p>
+         *
+         * @param currentPomFile 当前pom.xml文件
+         * @param propertyName   属性名称
+         * @return 属性值,如果未找到则返回 null
+         * @since 1.0.0
+         */
+        private String findPropertyInParentPom(VirtualFile currentPomFile, String propertyName) {
+            try {
+                // 获取当前pom.xml所在目录的父目录
+                VirtualFile parentDir = currentPomFile.getParent();
+                if (parentDir == null) {
+                    return null;
+                }
+
+                // 继续向上查找父目录
+                VirtualFile grandParentDir = parentDir.getParent();
+                if (grandParentDir == null) {
+                    return null;
+                }
+
+                // 查找父目录中的pom.xml文件
+                VirtualFile parentPomFile = grandParentDir.findChild("pom.xml");
+                if (parentPomFile == null || !parentPomFile.exists()) {
+                    return null;
+                }
+
+                // 读取父pom.xml的内容
+                String parentPomContent = new String(parentPomFile.contentsToByteArray());
+
+                // 从父pom.xml的properties节点中查找属性
+                String propertyValue = this.extractPropertyFromPom(parentPomContent, propertyName);
+
+                // 如果在父pom.xml中找到了,返回该值
+                if (propertyValue != null) {
+                    // 解析可能存在的嵌套占位符
+                    return this.resolvePlaceholder(propertyValue, parentPomContent, parentPomFile);
+                }
+
+                // 如果还没找到,继续向上递归查找
+                return this.findPropertyInParentPom(parentPomFile, propertyName);
+            } catch (Exception e) {
+                // 查找失败,返回 null
+                return null;
+            }
         }
     }
 

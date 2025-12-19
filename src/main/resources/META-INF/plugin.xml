@@ -234,8 +234,11 @@
         <psi.referenceContributor language="XML"
                                   implementation="io.github.easy.tools.service.mybatis.MyBatisParamReferenceContributor"/>
 
-        <!-- 注册MyBatis XML代码补全贡献者，用于参数智能提示 -->
-        <completion.contributor language="any"
+        <!-- 注册MyBatis XML代码补全贡献者,用于参数智能提示 -->
+        <!-- 使用最高优先级确保在DTD补全之前执行 -->
+        <completion.contributor language="XML"
+                                order="first, before xmlLocation"
+                                id="io.github.easy.tools.mybatis.completion"
                                 implementationClass="io.github.easy.tools.service.mybatis.MyBatisXmlCompletionContributor"/>
 
     </extensions>
