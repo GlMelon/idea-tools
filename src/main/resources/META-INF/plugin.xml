@@ -10,202 +10,44 @@
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
     <description><![CDATA[
-      <h2>Easy Tools - IDEA 开发效率工具集</h2>
-      <p>一款全面的生产力插件，通过强大的 JavaDoc 生成、AI 集成、API 管理和实用工具来增强开发体验。</p>
+      <h2>Easy Tools - IntelliJ IDEA Productivity Plugin</h2>
+      <p>A comprehensive productivity plugin for Java developers that enhances development experience with JavaDoc generation, AI integration, API management, and MyBatis enhancement.</p>
 
-      <h3>✨ 核心功能</h3>
-
-      <h4>📝 1. JavaDoc 注释生成</h4>
+      <h3>Core Features</h3>
       <ul>
-        <li><b>双模式生成:</b>
-          <ul>
-            <li>基于可自定义 Velocity 模板的传统生成方式</li>
-            <li>AI 驱动的智能注释生成</li>
-          </ul>
-        </li>
-        <li><b>多层级支持:</b>
-          <ul>
-            <li>文件级别: 为整个 Java 文件生成注释 (Alt+Shift+J)</li>
-            <li>元素级别: 为类、方法、字段生成注释 (Alt+J)</li>
-          </ul>
-        </li>
-        <li><b>注释管理:</b>
-          <ul>
-            <li>删除元素或整个文件的注释</li>
-            <li>文件保存时自动生成(可配置)</li>
-            <li>覆盖或保留现有注释</li>
-          </ul>
-        </li>
-        <li><b>可定制模板:</b>
-          <ul>
-            <li>类、方法和字段模板</li>
-            <li>Velocity 模板引擎支持</li>
-            <li>自定义 JavaDoc 标签注册</li>
-          </ul>
-        </li>
+        <li><b>JavaDoc Generation:</b> Template-based or AI-powered comment generation for files, classes, methods, and fields (Alt+Shift+J, Alt+J)</li>
+        <li><b>AI Integration:</b> Support for OpenAI GPT, Claude, Gemini, DeepSeek, Qwen, GLM, Wenxin, Azure OpenAI, and local Ollama models</li>
+        <li><b>API Management:</b> Spring MVC REST API scanner with tree view, search dialog (Ctrl+\), and navigation features</li>
+        <li><b>MyBatis Enhancement:</b> Smart navigation between Mapper and XML, parameter completion with #{} support, reference jumping, and SQL tag generation</li>
+        <li><b>Development Tools:</b> AI-powered code generation from database schema, naming convention converter (Ctrl+Shift+U), and project view JavaDoc decorator</li>
       </ul>
 
-      <h4>🤖 2. AI 智能集成</h4>
+      <h3>Key Highlights</h3>
       <ul>
-        <li><b>多提供商支持:</b>
-          <ul>
-            <li>OpenAI GPT</li>
-            <li>Anthropic Claude</li>
-            <li>Google Gemini</li>
-            <li>Ollama (本地模型)</li>
-            <li>DeepSeek</li>
-            <li>阿里云通义千问</li>
-            <li>智谱清言 GLM</li>
-            <li>百度文心一言</li>
-            <li>Azure OpenAI</li>
-          </ul>
-        </li>
-        <li><b>智能注释生成:</b>
-          <ul>
-            <li>上下文感知的 JavaDoc 生成</li>
-            <li>代码分析与智能描述</li>
-            <li>提供商缓存以提升性能</li>
-          </ul>
-        </li>
+        <li>Bidirectional navigation between Mapper interfaces and XML files</li>
+        <li>Intelligent parameter completion with @Param and nested object support</li>
+        <li>Swagger/OpenAPI annotation integration (@Operation, @Tag, @Schema)</li>
+        <li>Customizable Velocity templates for JavaDoc generation</li>
+        <li>Feature toggle system with 17+ configurable switches</li>
+        <li>Syntax highlighting for MyBatis XML tags</li>
       </ul>
 
-      <h4>🌐 3. API 接口管理</h4>
+      <h3>Configuration</h3>
+      <p>Settings → Other Settings → Easy Config</p>
       <ul>
-        <li><b>API 扫描器:</b>
-          <ul>
-            <li>自动扫描 Spring MVC REST 接口</li>
-            <li>支持 @RestController 和 @Controller</li>
-            <li>HTTP 方法注解 (@GetMapping、@PostMapping 等)</li>
-            <li>递归处理元注解</li>
-          </ul>
-        </li>
-        <li><b>Swagger/OpenAPI 集成:</b>
-          <ul>
-            <li>支持 @Operation、@Tag 注解</li>
-            <li>提取 API 名称和描述</li>
-            <li>Controller 分组和描述</li>
-          </ul>
-        </li>
-        <li><b>API 工具窗口:</b>
-          <ul>
-            <li>按 Controller 分组的树形视图</li>
-            <li>实时增量扫描</li>
-            <li>双击导航到源代码</li>
-            <li>显示 HTTP 方法和 URL 路径</li>
-          </ul>
-        </li>
-        <li><b>快速 API 搜索:</b>
-          <ul>
-            <li>快速搜索对话框 (Ctrl+\ 或 Cmd+\)</li>
-            <li>按名称、URL、方法或类筛选</li>
-            <li>即时导航到 API 方法</li>
-          </ul>
-        </li>
+        <li>Feature Toggles: Enable/disable specific modules</li>
+        <li>JavaDoc Config: Customize comment templates</li>
+        <li>LLM Config: Configure AI providers and models</li>
+        <li>Code Generation: Database connection and templates</li>
       </ul>
 
-      <h4>🛠️ 4. MyBatis 开发增强</h4>
+      <h3>Quick Start</h3>
       <ul>
-        <li><b>智能导航:</b>
-          <ul>
-            <li>Mapper 接口与 XML 文件之间的双向导航</li>
-            <li>接口方法与 SQL 标签的精确跳转</li>
-            <li>行标记图标显示关联关系</li>
-          </ul>
-        </li>
-        <li><b>语法高亮:</b>
-          <ul>
-            <li>MyBatis XML 标签语法高亮</li>
-            <li>SQL 标签、动态标签、结果映射标签区分高亮</li>
-            <li>提升 XML 文件可读性</li>
-          </ul>
-        </li>
-        <li><b>代码补全:</b>
-          <ul>
-            <li>Mapper 方法参数智能提示</li>
-            <li>支持对象属性链式访问补全</li>
-            <li>自动添加 #{} 包裹</li>
-            <li>支持 @Param 注解参数识别</li>
-            <li>字段描述显示(Swagger/@Schema)</li>
-          </ul>
-        </li>
-        <li><b>引用跳转:</b>
-          <ul>
-            <li>#{参数} 引用跳转到 Java 字段</li>
-            <li>支持嵌套对象属性跳转</li>
-            <li>支持 include 标签的 refid 引用</li>
-          </ul>
-        </li>
-        <li><b>SQL 标签生成:</b>
-          <ul>
-            <li>快速生成 select/insert/update/delete 标签</li>
-            <li>基于 Mapper 方法和参数类型</li>
-            <li>自动生成字段映射</li>
-          </ul>
-        </li>
-      </ul>
-
-      <h4>🛠️ 5. 开发辅助工具</h4>
-      <ul>
-        <li><b>AI 代码生成:</b>
-          <ul>
-            <li>基于数据库表结构生成代码</li>
-            <li>支持多种模板和数据源配置</li>
-            <li>智能类型映射和命名转换</li>
-            <li>批量生成多表代码</li>
-          </ul>
-        </li>
-        <li><b>属性名称转换器:</b>
-          <ul>
-            <li>在不同命名规范间转换 (Ctrl+Shift+U)</li>
-            <li>小驼峰/大驼峰格式 (userName、UserName)</li>
-            <li>小写/大写下划线格式 (user_name、USER_NAME)</li>
-            <li>记住上次选择以便快速转换</li>
-          </ul>
-        </li>
-        <li><b>项目视图注释装饰器:</b>
-          <ul>
-            <li>在项目树中显示 JavaDoc</li>
-            <li>显示 package-info.java 的包描述</li>
-            <li>显示 Java 文件的类描述</li>
-            <li>自动文本截断和工具提示</li>
-          </ul>
-        </li>
-        <li><b>功能开关系统:</b>
-          <ul>
-            <li>启用/禁用各个功能模块</li>
-            <li>跨 IDE 会话的持久化配置</li>
-            <li>集中式功能管理</li>
-            <li>支持17个功能开关</li>
-          </ul>
-        </li>
-      </ul>
-
-      <h3>⚙️ 配置说明</h3>
-      <p>设置 → 其他设置 → Easy Config</p>
-      <ul>
-        <li>功能开关: 启用/禁用特定功能</li>
-        <li>Java Doc 配置: 自定义 Java 注释模板</li>
-        <li>LLM 配置: 配置 AI 提供商和模型</li>
-      </ul>
-
-      <h3>⌨️ 快捷键</h3>
-      <ul>
-        <li><b>Alt+Shift+J:</b> 生成 Java 文件注释</li>
-        <li><b>Alt+J:</b> 生成 Java 元素注释</li>
-        <li><b>Ctrl+Shift+U:</b> 转换属性命名</li>
-        <li><b>Ctrl+\:</b> 快速 API 搜索</li>
-        <li><b>Ctrl+Shift+G:</b> AI 代码生成</li>
-      </ul>
-
-      <h3>🎯 使用场景</h3>
-      <ul>
-        <li>在大型 Java 代码库中维护一致的文档注释</li>
-        <li>借助 AI 快速为遗留代码编写文档</li>
-        <li>高效探索和导航 Spring MVC 接口</li>
-        <li>提升 MyBatis XML 编辑效率和代码跳转</li>
-        <li>在团队项目中统一命名规范</li>
-        <li>提升项目浏览器中的代码可读性</li>
-        <li>快速基于数据库表生成代码文件</li>
+        <li><b>Alt+Shift+J:</b> Generate file comment</li>
+        <li><b>Alt+J:</b> Generate element comment</li>
+        <li><b>Ctrl+\:</b> Quick API search</li>
+        <li><b>Ctrl+Shift+U:</b> Convert property naming</li>
+        <li><b>Ctrl+Shift+G:</b> AI code generation</li>
       </ul>
     ]]></description>
 
@@ -237,7 +79,7 @@
         <!-- 注册MyBatis XML代码补全贡献者,用于参数智能提示 -->
         <!-- 不指定language以支持语言注入场景(如XML中的SQL注入为MySQL) -->
         <completion.contributor language="any"
-                                order="first, before sql"
+                                order="first"
                                 id="io.github.easy.tools.mybatis.completion"
                                 implementationClass="io.github.easy.tools.service.mybatis.MyBatisXmlCompletionContributor"/>
     </extensions>
