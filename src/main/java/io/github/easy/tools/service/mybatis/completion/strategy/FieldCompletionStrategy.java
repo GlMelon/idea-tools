@@ -42,7 +42,6 @@ public class FieldCompletionStrategy implements CompletionStrategy {
 
     /**
      * 需要排除的字段名称
-     *
      */
     private static final Set<String> EXCLUDED_FIELDS = new HashSet<>(Arrays.asList(
             "serialVersionUID", "class"
@@ -82,8 +81,39 @@ public class FieldCompletionStrategy implements CompletionStrategy {
             return;
         }
 
+        // 计算用于匹配字段名的前缀
+        // 例如：currentText = "query.ty"，则fieldNamePrefix = "ty"
+        // 例如：currentText = "query."，则fieldNamePrefix = ""
+        String currentInput = parseResult.getCurrentInput();
+        String fieldNamePrefix = this.extractFieldNamePrefix(currentInput);
+
+        // 使用自定义前缀匹配器，只匹配字段名部分
+        CompletionResultSet fieldResult = result.withPrefixMatcher(fieldNamePrefix);
+
         // 提供字段补全
-        this.provideFieldCompletions(targetClass, parseResult, context, result);
+        this.provideFieldCompletions(targetClass, parseResult, context, fieldResult);
+    }
+
+    /**
+     * 提取用于匹配字段名的前缀
+     * 从currentInput中提取最后一个点号之后的内容
+     *
+     * @param currentInput 当前输入
+     * @return 字段名前缀
+     * @since 1.0.0
+     */
+    @NotNull
+    private String extractFieldNamePrefix(@NotNull String currentInput) {
+        int lastDotIndex = currentInput.lastIndexOf('.');
+        if (lastDotIndex >= 0 && lastDotIndex < currentInput.length() - 1) {
+            // 有点号，返回点号后面的内容
+            return currentInput.substring(lastDotIndex + 1);
+        } else if (lastDotIndex == currentInput.length() - 1) {
+            // 点号在最后，返回空字符串
+            return "";
+        }
+        // 没有点号，返回整个输入
+        return currentInput;
     }
 
     /**
@@ -188,17 +218,16 @@ public class FieldCompletionStrategy implements CompletionStrategy {
         parentFields.removeAll(ownFields);
 
         // 先处理当前类的字段(优先级高)
-        this.processFields(ownFields, currentInput, prefixPath, isInXmlAttribute, context, result);
+        this.processFields(ownFields, prefixPath, isInXmlAttribute, context, result);
 
         // 再处理父类的字段(优先级低)
-        this.processFields(parentFields, currentInput, prefixPath, isInXmlAttribute, context, result);
+        this.processFields(parentFields, prefixPath, isInXmlAttribute, context, result);
     }
 
     /**
      * 处理字段列表
      *
      * @param fields           字段列表
-     * @param currentInput     当前输入
      * @param prefixPath       前缀路径
      * @param isInXmlAttribute 是否在XML属性中
      * @param context          上下文
@@ -206,7 +235,6 @@ public class FieldCompletionStrategy implements CompletionStrategy {
      * @since 1.0.0
      */
     private void processFields(@NotNull List<PsiField> fields,
-                               @NotNull String currentInput,
                                @NotNull String prefixPath,
                                boolean isInXmlAttribute,
                                @NotNull CompletionContext context,
@@ -219,36 +247,31 @@ public class FieldCompletionStrategy implements CompletionStrategy {
                 continue;
             }
 
-            // 模糊匹配
-            if (StrUtil.isBlank(currentInput) || fieldName.startsWith(currentInput)) {
-                // 构建完整的路径（用于展示）
-                String fullPath = StrUtil.isBlank(prefixPath) ? fieldName : prefixPath + "." + fieldName;
+            // 不需要手动模糊匹配，PrefixMatcher会自动过滤
+            // 构建完整的路径（用于展示）
+            String fullPath = StrUtil.isBlank(prefixPath) ? fieldName : prefixPath + "." + fieldName;
 
-                // 在XML属性中，只插入字段名；在XML内容中，插入完整路径
-                String insertText = isInXmlAttribute ? fieldName : fullPath;
+            // 提取字段描述
+            String fieldDescription = this.extractFieldDescription(field);
 
-                // 提取字段描述
-                String fieldDescription = this.extractFieldDescription(field);
+            // 构建LookupElement，lookupString设置为字段名
+            LookupElementBuilder builder = LookupElementBuilder
+                    .create(fieldName)
+                    .withPresentableText(fullPath)  // 显示完整路径
+                    .withIcon(AllIcons.Nodes.Field)
+                    .withTypeText(field.getType().getPresentableText())
+                    .withInsertHandler(new FieldInsertHandler(isInXmlAttribute, prefixPath, fullPath, context));
 
-                // 构建LookupElement
-                LookupElementBuilder builder = LookupElementBuilder
-                        .create(insertText)
-                        .withPresentableText(fullPath)  // 显示完整路径
-                        .withIcon(AllIcons.Nodes.Field)
-                        .withTypeText(field.getType().getPresentableText())
-                        .withInsertHandler(new FieldInsertHandler(isInXmlAttribute, prefixPath));
-
-                // 如果有描述信息,添加到tailText中
-                if (StrUtil.isNotBlank(fieldDescription)) {
-                    builder = builder.withTailText(" " + field.getType().getPresentableText() + " - " + fieldDescription, true);
-                } else {
-                    builder = builder.withTailText(" " + field.getType().getPresentableText(), true);
-                }
-
-                // 为补全项添加高优先级,确保在其他插件之前显示
-                LookupElement prioritized = PrioritizedLookupElement.withPriority(builder, 100.0);
-                result.addElement(prioritized);
+            // 如果有描述信息,添加到tailText中
+            if (StrUtil.isNotBlank(fieldDescription)) {
+                builder = builder.withTailText(" " + field.getType().getPresentableText() + " - " + fieldDescription, true);
+            } else {
+                builder = builder.withTailText(" " + field.getType().getPresentableText(), true);
             }
+
+            // 为补全项添加高优先级,确保在其他插件之前显示
+            LookupElement prioritized = PrioritizedLookupElement.withPriority(builder, 100.0);
+            result.addElement(prioritized);
         }
     }
 
@@ -367,79 +390,221 @@ public class FieldCompletionStrategy implements CompletionStrategy {
 
         /**
          * is in xml attribute
-         *
          */
         private final boolean isInXmlAttribute;
 
         /**
          * prefix path (如: query 或 query.user)
-         *
          */
         private final String prefixPath;
+
+        /**
+         * full path (如: query.type)
+         */
+        private final String fullPath;
+
+        /**
+         * 补全上下文
+         */
+        private final CompletionContext context;
 
         /**
          * Field Insert Handler
          *
          * @param isInXmlAttribute is in xml attribute
          * @param prefixPath       prefix path
+         * @param fullPath         full path
+         * @param context          补全上下文
          * @since 1.0.0
          */
-        public FieldInsertHandler(boolean isInXmlAttribute, String prefixPath) {
+        public FieldInsertHandler(boolean isInXmlAttribute, String prefixPath, String fullPath, CompletionContext context) {
             this.isInXmlAttribute = isInXmlAttribute;
             this.prefixPath = prefixPath;
+            this.fullPath = fullPath;
+            this.context = context;
         }
 
         /**
          * Handle Insert
          *
-         * @param context context
+         * @param insertionContext insertion context
          * @param lookupElement lookup element
          * @since 1.0.0
          */
         @Override
-        public void handleInsert(@NotNull InsertionContext context, @NotNull LookupElement lookupElement) {
-            // 如果在XML属性中，使用IntelliJ的默认行为（已经只插入字段名）
+        public void handleInsert(@NotNull InsertionContext insertionContext, @NotNull LookupElement lookupElement) {
+            Document document = insertionContext.getDocument();
+            Editor editor = insertionContext.getEditor();
+            int startOffset = insertionContext.getStartOffset();
+            int tailOffset = insertionContext.getTailOffset();
+
+            // 先删除IntelliJ刚插入的内容
+            document.deleteString(startOffset, tailOffset);
+
+            // 如果在XML属性中
             if (this.isInXmlAttribute) {
-                // 不做任何处理，IntelliJ会自动替换当前输入的部分
+                // 在XML属性中，只需要插入完整路径，不需要#{}
+                this.handleInsertInAttribute(document, editor, startOffset);
                 return;
             }
 
-            // 在XML内容中，需要添加 #{ }
-            Editor editor = context.getEditor();
-            Document document = editor.getDocument();
-            int startOffset = context.getStartOffset();
-            int tailOffset = context.getTailOffset();
+            // 在XML内容中，需要特殊处理
+            // 此时IntelliJ已经插入了字段名，我们需要：
+            // 1. 删除IntelliJ插入的字段名（已完成）
+            // 2. 删除前面的前缀
+            // 3. 插入完整的 #{完整路径}
 
-            String insertText = lookupElement.getLookupString();
-            StringBuilder textBuilder = new StringBuilder();
+            // 检查是否在#{}表达式内
+            boolean isInExpression = this.context.getExpressionStartOffset() >= 0;
 
-            // 检查前面是否已经有#{
-            String textBefore = "";
-            if (startOffset > 2) {
-                textBefore = document.getText().substring(Math.max(0, startOffset - 2), startOffset);
+            if (isInExpression) {
+                // 在#{}表达式内
+                this.handleInsertInExpression(document, editor, startOffset);
+            } else {
+                // 不在#{}表达式内
+                this.handleInsertOutsideExpression(document, editor, startOffset);
+            }
+        }
+
+        /**
+         * 处理在XML属性中的插入
+         *
+         * @param document document
+         * @param editor editor
+         * @param currentOffset 当前偏移量（IntelliJ插入后又删除的位置）
+         * @since 1.0.0
+         */
+        private void handleInsertInAttribute(@NotNull Document document,
+                                            @NotNull Editor editor,
+                                            int currentOffset) {
+            // 在XML属性中，需要删除前面的前缀，然后插入完整路径
+            String currentInput = this.context.getCurrentText();
+            int documentLength = document.getTextLength();
+
+            // 计算前缀的起始位置
+            int prefixStart = currentOffset - currentInput.length();
+            if (prefixStart < 0) {
+                prefixStart = 0;
             }
 
-            if (!"#{".equals(textBefore)) {
-                textBuilder.append("#{");
-            }
-            textBuilder.append(insertText);
-
-            // 检查后面是否已经有}
-            String textAfter = "";
-            if (tailOffset < document.getTextLength()) {
-                textAfter = document.getText().substring(tailOffset, Math.min(tailOffset + 1, document.getTextLength()));
+            // 边界检查
+            if (prefixStart > documentLength || currentOffset > documentLength) {
+                // 如果offset无效，直接插入完整路径
+                document.insertString(currentOffset, this.fullPath);
+                editor.getCaretModel().moveToOffset(currentOffset + this.fullPath.length());
+                return;
             }
 
-            if (!"}".equals(textAfter)) {
-                textBuilder.append("}");
+            // 删除前缀
+            if (prefixStart < currentOffset) {
+                document.deleteString(prefixStart, currentOffset);
             }
 
-            // 删除已经插入的内容,重新插入
-            document.deleteString(startOffset, tailOffset);
-            document.insertString(startOffset, textBuilder.toString());
+            // 插入完整路径
+            document.insertString(prefixStart, this.fullPath);
 
             // 移动光标到插入内容的末尾
-            editor.getCaretModel().moveToOffset(startOffset + textBuilder.length());
+            editor.getCaretModel().moveToOffset(prefixStart + this.fullPath.length());
+        }
+
+        /**
+         * 处理在#{}表达式内的插入
+         *
+         * @param document document
+         * @param editor editor
+         * @param currentOffset 当前偏移量（IntelliJ插入后又删除的位置）
+         * @since 1.0.0
+         */
+        private void handleInsertInExpression(@NotNull Document document,
+                                             @NotNull Editor editor,
+                                             int currentOffset) {
+            int exprStart = this.context.getExpressionStartOffset();
+            int exprEnd = this.context.getExpressionEndOffset();
+            int documentLength = document.getTextLength();
+
+            // 边界检查
+            if (exprStart < 0 || exprStart > documentLength) {
+                this.insertSimpleExpression(document, editor, currentOffset);
+                return;
+            }
+
+            // 计算需要删除的范围
+            // 从表达式开始位置(#{)到当前位置
+            int deleteStart = exprStart;
+            int deleteEnd = currentOffset;
+
+            // 如果找到了表达式结束位置(}),也删除它
+            if (exprEnd >= 0 && exprEnd < documentLength && exprEnd >= currentOffset) {
+                deleteEnd = exprEnd + 1;
+            }
+
+            // 删除整个表达式内容（包括#{}）
+            if (deleteStart < deleteEnd && deleteEnd <= documentLength) {
+                document.deleteString(deleteStart, deleteEnd);
+            }
+
+            // 插入新的完整表达式
+            String newExpression = "#{" + this.fullPath + "}";
+            document.insertString(deleteStart, newExpression);
+
+            // 移动光标到表达式结束位置
+            editor.getCaretModel().moveToOffset(deleteStart + newExpression.length());
+        }
+
+        /**
+         * 处理不在#{}表达式内的插入
+         *
+         * @param document document
+         * @param editor editor
+         * @param currentOffset 当前偏移量（IntelliJ插入后又删除的位置）
+         * @since 1.0.0
+         */
+        private void handleInsertOutsideExpression(@NotNull Document document,
+                                                  @NotNull Editor editor,
+                                                  int currentOffset) {
+            // 需要删除前面的前缀（如query.）
+            String currentInput = this.context.getCurrentText();
+            int documentLength = document.getTextLength();
+
+            // 计算前缀的起始位置
+            int prefixStart = currentOffset - currentInput.length();
+            if (prefixStart < 0) {
+                prefixStart = 0;
+            }
+
+            // 边界检查
+            if (prefixStart > documentLength || currentOffset > documentLength) {
+                this.insertSimpleExpression(document, editor, currentOffset);
+                return;
+            }
+
+            // 删除前缀
+            if (prefixStart < currentOffset) {
+                document.deleteString(prefixStart, currentOffset);
+            }
+
+            // 插入新的完整表达式
+            String newExpression = "#{" + this.fullPath + "}";
+            document.insertString(prefixStart, newExpression);
+
+            // 移动光标到表达式结束位置
+            editor.getCaretModel().moveToOffset(prefixStart + newExpression.length());
+        }
+
+        /**
+         * 简单模式插入表达式(当offset计算出错时的回退方案)
+         *
+         * @param document document
+         * @param editor editor
+         * @param offset offset
+         * @since 1.0.0
+         */
+        private void insertSimpleExpression(@NotNull Document document,
+                                           @NotNull Editor editor,
+                                           int offset) {
+            String newExpression = "#{" + this.fullPath + "}";
+            document.insertString(offset, newExpression);
+            editor.getCaretModel().moveToOffset(offset + newExpression.length());
         }
     }
 }

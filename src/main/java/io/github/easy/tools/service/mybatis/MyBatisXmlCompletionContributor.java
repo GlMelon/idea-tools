@@ -5,6 +5,7 @@ import com.intellij.codeInsight.completion.CompletionParameters;
 import com.intellij.codeInsight.completion.CompletionProvider;
 import com.intellij.codeInsight.completion.CompletionResultSet;
 import com.intellij.codeInsight.completion.CompletionType;
+import com.intellij.lang.injection.InjectedLanguageManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
@@ -15,7 +16,6 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.xml.XmlAttribute;
 import com.intellij.psi.xml.XmlAttributeValue;
-import com.intellij.psi.xml.XmlFile;
 import com.intellij.psi.xml.XmlTag;
 import com.intellij.psi.xml.XmlText;
 import com.intellij.util.ProcessingContext;
@@ -51,13 +51,11 @@ public class MyBatisXmlCompletionContributor extends CompletionContributor {
 
     /**
      * LOG
-     *
      */
     private static final Logger LOG = Logger.getInstance(MyBatisXmlCompletionContributor.class);
 
     /**
      * MyBatis SQL标签集合
-     *
      */
     private static final Set<String> SQL_TAGS = new HashSet<>(Arrays.asList(
             "select", "insert", "update", "delete", "sql"
@@ -76,211 +74,85 @@ public class MyBatisXmlCompletionContributor extends CompletionContributor {
         // 注册统一的 BASIC 类型补全,匹配所有 XML 文件中的 PsiElement
         // 在 MyBatisParamCompletionProvider 内部再判断是属性还是文本内容
         this.extend(CompletionType.BASIC,
-                PlatformPatterns.psiElement()
-                        .inFile(PlatformPatterns.instanceOf(XmlFile.class)),
-                provider);
-
-        // 注册SMART类型补全,提高优先级
-        this.extend(CompletionType.SMART,
-                PlatformPatterns.psiElement()
-                        .inFile(PlatformPatterns.instanceOf(XmlFile.class)),
+                PlatformPatterns.psiElement(),
                 provider);
     }
 
     /**
-     * 重写fillCompletionVariants,提供更强的控制权
-     * 在Mapper XML文件中,当我们提供了补全项时,阻止其他插件的补全
+     * 文本提取结果,包含提取的文本和表达式边界信息
      *
-     * 修复: 确保在有DOCTYPE声明的XML文件中也能正常工作
-     *
-     * @param parameters 补全参数
-     * @param result     补全结果集
+     * @author haijun
+     * @date 2025-12-22 16:52:49
+     * @version 1.0.0
      * @since 1.0.0
      */
-    @Override
-    public void fillCompletionVariants(@NotNull CompletionParameters parameters, @NotNull CompletionResultSet result) {
-        PsiElement position = parameters.getPosition();
+    private static class TextExtractionResult {
+        /**
+         * current text
+         */
+        private final String currentText;
+        /**
+         * expression start offset
+         */
+        private final int expressionStartOffset;
+        /**
+         * expression end offset
+         */
+        private final int expressionEndOffset;
 
-        // 只在Mapper XML文件中处理
-        boolean isInMapperFile = MyBatisUtils.isInMapperFile(position);
-
-        if (!isInMapperFile) {
-            super.fillCompletionVariants(parameters, result);
-            return;
+        /**
+         * Text Extraction Result
+         *
+         * @param currentText current text
+         * @param expressionStartOffset expression start offset
+         * @param expressionEndOffset expression end offset
+         * @since 1.0.0
+         */
+        public TextExtractionResult(String currentText, int expressionStartOffset, int expressionEndOffset) {
+            this.currentText = currentText;
+            this.expressionStartOffset = expressionStartOffset;
+            this.expressionEndOffset = expressionEndOffset;
         }
 
-        // 查找对应的Mapper方法
-        PsiMethod method = MyBatisUtils.findMethod(position);
-
-        // 检查是否在SQL相关的位置(文本内容或属性值)
-        boolean isInRelevantContext = this.isInRelevantContext(position);
-
-        boolean shouldProvideCompletion = method != null && isInRelevantContext;
-
-        if (shouldProvideCompletion) {
-            // 调用我们自己的补全逻辑
-            super.fillCompletionVariants(parameters, result);
-
-            result.stopHere();
-        } else {
-            // 不在相关上下文中,使用默认行为
-            super.fillCompletionVariants(parameters, result);
-        }
-    }
-
-    /**
-     * 检查是否在相关的上下文中(需要提供补全的位置)
-     *
-     * @param position 当前位置
-     * @return true如果在相关上下文中
-     * @since 1.0.0
-     */
-    private boolean isInRelevantContext(@NotNull PsiElement position) {
-        PsiElement parent = position.getParent();
-
-        // 检查是否在 XML 属性值中
-        if (this.isInXmlAttributeValue(parent)) {
-            return this.isInSqlRelatedAttribute(parent);
+        /**
+         * Get Current Text
+         *
+         * @return string
+         * @since 1.0.0
+         */
+        public String getCurrentText() {
+            return this.currentText;
         }
 
-        // 检查是否在 XML 文本内容中
-        if (this.isInXmlTextContent(parent)) {
-            return this.isInSqlRelatedTag(parent);
+        /**
+         * Get Expression Start Offset
+         *
+         * @return int
+         * @since 1.0.0
+         */
+        public int getExpressionStartOffset() {
+            return this.expressionStartOffset;
         }
 
-        return false;
-    }
-
-    /**
-     * 检查是否在 XML 属性值中
-     *
-     * @param element PSI元素
-     * @return true如果在属性值中
-     * @since 1.0.0
-     */
-    private boolean isInXmlAttributeValue(@Nullable PsiElement element) {
-        while (element != null) {
-            if (element instanceof XmlAttributeValue) {
-                return true;
-            }
-            if (element instanceof XmlTag) {
-                return false;
-            }
-            element = element.getParent();
-        }
-        return false;
-    }
-
-    /**
-     * 检查是否在 XML 文本内容中
-     *
-     * @param element PSI元素
-     * @return true如果在文本内容中
-     * @since 1.0.0
-     */
-    private boolean isInXmlTextContent(@Nullable PsiElement element) {
-        while (element != null) {
-            if (element instanceof XmlText) {
-                return true;
-            }
-            if (element instanceof XmlAttributeValue) {
-                return false;
-            }
-            element = element.getParent();
-        }
-        return false;
-    }
-
-    /**
-     * 检查属性是否与SQL相关
-     * 只要属性在SQL相关标签内(select/insert/update/delete等),就返回true
-     *
-     * @param element PSI元素
-     * @return true如果是SQL相关属性
-     * @since 1.0.0
-     */
-    private boolean isInSqlRelatedAttribute(@NotNull PsiElement element) {
-        PsiElement current = element;
-        XmlAttribute attribute = null;
-
-        // 先向上查找到属性节点
-        while (current != null) {
-            if (current instanceof XmlAttribute) {
-                attribute = (XmlAttribute) current;
-                break;
-            }
-            if (current instanceof XmlTag) {
-                return false;
-            }
-            current = current.getParent();
+        /**
+         * Get Expression End Offset
+         *
+         * @return int
+         * @since 1.0.0
+         */
+        public int getExpressionEndOffset() {
+            return this.expressionEndOffset;
         }
 
-        if (attribute == null) {
-            return false;
+        /**
+         * Is In Expression
+         *
+         * @return boolean
+         * @since 1.0.0
+         */
+        public boolean isInExpression() {
+            return this.expressionStartOffset >= 0 && this.expressionEndOffset >= 0;
         }
-
-        // 从属性的父标签开始向上查找SQL相关标签
-        XmlTag tag = attribute.getParent();
-        while (tag != null) {
-            String tagName = tag.getName();
-
-            // 检查是否是SQL相关标签
-            if (SQL_TAGS.contains(tagName)) {
-                return true;
-            }
-
-            // 检查是否是其他MyBatis动态SQL标签
-            if ("where".equals(tagName) || "set".equals(tagName) ||
-                "foreach".equals(tagName) || "trim".equals(tagName) ||
-                "if".equals(tagName) || "when".equals(tagName) ||
-                "otherwise".equals(tagName) || "choose".equals(tagName) ||
-                "bind".equals(tagName)) {
-                return true;
-            }
-
-            // 继续向上查找
-            PsiElement parent = tag.getParent();
-            if (parent instanceof XmlTag) {
-                tag = (XmlTag) parent;
-            } else {
-                break;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * 检查是否在SQL相关的标签中
-     *
-     * @param element PSI元素
-     * @return true如果在SQL标签中
-     * @since 1.0.0
-     */
-    private boolean isInSqlRelatedTag(@NotNull PsiElement element) {
-        PsiElement current = element;
-        while (current != null) {
-            if (current instanceof XmlTag tag) {
-                // 检查是否是SQL相关标签
-                if (SQL_TAGS.contains(tag.getName())) {
-                    return true;
-                }
-                // 检查是否是带有test属性的标签(如if, when等)
-                if (tag.getAttribute("test") != null) {
-                    return true;
-                }
-                // 检查是否是其他SQL标签(where, set, foreach等)
-                String tagName = tag.getName();
-                if ("where".equals(tagName) || "set".equals(tagName) ||
-                    "foreach".equals(tagName) || "trim".equals(tagName) ||
-                    "if".equals(tagName) || "when".equals(tagName) ||
-                    "otherwise".equals(tagName) || "choose".equals(tagName)) {
-                    return true;
-                }
-            }
-            current = current.getParent();
-        }
-        return false;
     }
 
     /**
@@ -307,47 +179,74 @@ public class MyBatisXmlCompletionContributor extends CompletionContributor {
                                       @NotNull ProcessingContext context,
                                       @NotNull CompletionResultSet result) {
             PsiElement position = parameters.getPosition();
+            Project project = position.getProject();
+
+            // 使用InjectedLanguageManager获取顶层元素,解决其他插件包装的问题
+            InjectedLanguageManager injectedManager = InjectedLanguageManager.getInstance(project);
+            PsiElement topLevelElement = injectedManager.getInjectionHost(position);
+
+            // 使用顶层元素进行文件和方法查找
+            PsiElement checkElement = topLevelElement != null ? topLevelElement : position;
 
             // 检查是否在Mapper XML文件中
-            if (!MyBatisUtils.isInMapperFile(position)) {
+            if (!MyBatisUtils.isInMapperFile(checkElement)) {
                 return;
             }
 
-            // 判断是否在相关上下文中
-            PsiElement parent = position.getParent();
-            boolean isInAttribute = this.isInXmlAttributeValue(parent);
-            boolean isInTextContent = this.isInXmlTextContent(parent);
+            // 使用原始position判断上下文类型,因为topLevelElement在injected环境中不是XmlText
+            boolean isInAttribute = this.isInXmlAttributeValue(checkElement);
+            boolean isInTextContent = this.isInXmlTextContent(checkElement);
 
             // 必须在属性值或文本内容中
             if (!isInAttribute && !isInTextContent) {
                 return;
             }
 
-            // 如果在属性中,检查是否在SQL相关标签内的属性
-            if (isInAttribute && !this.isInSqlRelatedAttribute(parent)) {
-                return;
-            }
-
-            // 如果在文本内容中,检查是否在SQL相关标签中
-            if (isInTextContent && !this.isInSqlRelatedTag(parent)) {
+            // 使用checkElement进行SQL标签检查
+            if (!this.isInValidContext(checkElement, isInAttribute, isInTextContent)) {
                 return;
             }
 
             // 查找对应的Mapper方法
-            PsiMethod method = MyBatisUtils.findMethod(position);
+            PsiMethod method = MyBatisUtils.findMethod(checkElement);
             if (method == null) {
                 return;
             }
 
-            // 解析当前输入的内容
-            String currentText = this.getCurrentText(position);
+            // 解析当前输入的内容,传入parameters以获取正确的offset
+            TextExtractionResult textResult = this.getCurrentText(parameters, isInTextContent);
 
             // 构建补全上下文
             CompletionContext completionContext = this.buildCompletionContext(
-                    position, method, currentText, isInAttribute);
+                    checkElement, method, textResult, isInAttribute);
 
             // 使用策略管理器提供补全
             CompletionStrategyManager.getInstance().provideCompletions(completionContext, result);
+        }
+
+        /**
+         * 检查是否在有效的上下文中(简化版)
+         *
+         * @param parent           父元素
+         * @param isInAttribute    是否在属性中
+         * @param isInTextContent  是否在文本内容中
+         * @return true如果在有效的上下文中
+         * @since 1.0.0
+         */
+        private boolean isInValidContext(@Nullable PsiElement parent,
+                                        boolean isInAttribute,
+                                        boolean isInTextContent) {
+            // 如果在属性中,检查是否在SQL相关标签内的属性
+            if (isInAttribute) {
+                return parent != null && this.isInSqlRelatedAttribute(parent);
+            }
+
+            // 如果在文本内容中,检查是否在SQL相关标签中
+            if (isInTextContent) {
+                return parent != null && this.isInSqlRelatedTag(parent);
+            }
+
+            return false;
         }
 
         /**
@@ -481,28 +380,26 @@ public class MyBatisXmlCompletionContributor extends CompletionContributor {
         /**
          * 获取当前输入的文本
          *
-         * @param position 当前位置
-         * @return 当前文本
+         * @param parameters      补全参数
+         * @param isInTextContent 是否在文本内容中
+         * @return 文本提取结果
          * @since 1.0.0
          */
         @NotNull
-        private String getCurrentText(@NotNull PsiElement position) {
-            Project project = position.getProject();
-            Editor editor = FileEditorManager.getInstance(project).getSelectedTextEditor();
-            if (editor == null) {
-                return "";
-            }
-
+        private TextExtractionResult getCurrentText(@NotNull CompletionParameters parameters,
+                                                    boolean isInTextContent) {
+            // 从CompletionParameters获取editor和offset,这样可以正确处理injected language
+            Editor editor = parameters.getEditor();
+            int offset = parameters.getOffset();
             Document document = editor.getDocument();
-            int offset = editor.getCaretModel().getOffset();
 
-            // 检查是否在XML属性值中
-            PsiElement parent = position.getParent();
-            if (this.isInXmlAttributeValue(parent)) {
-                return this.getCurrentTextInXmlAttribute(document, offset);
-            } else {
-                // 在XML文本内容中
+            // 检查是否在XML文本内容中
+            if (isInTextContent) {
                 return this.getCurrentTextInXmlContent(document, offset);
+            } else {
+                // 在XML属性值中
+                String text = this.getCurrentTextInXmlAttribute(document, offset);
+                return new TextExtractionResult(text, -1, -1);
             }
         }
 
@@ -539,19 +436,69 @@ public class MyBatisXmlCompletionContributor extends CompletionContributor {
         }
 
         /**
-         * 获取XML文本内容中的当前文本
+         * 获取XML文本内容中的当前文本,支持识别#{}表达式
          *
          * @param document 文档
          * @param offset   光标位置
-         * @return 当前文本
+         * @return 文本提取结果
          * @since 1.0.0
          */
         @NotNull
-        private String getCurrentTextInXmlContent(@NotNull Document document, int offset) {
-            // 从光标位置向前查找,直到遇到空白字符或开始位置
+        private TextExtractionResult getCurrentTextInXmlContent(@NotNull Document document, int offset) {
+            CharSequence chars = document.getCharsSequence();
+            int textLength = document.getTextLength();
+
+            // 先检查是否在#{}表达式内部
+            int exprStart = -1;
+            int exprEnd = -1;
+
+            // 向前查找#{
+            for (int i = offset - 1; i >= 0; i--) {
+                char c = chars.charAt(i);
+                // 如果遇到},说明不在表达式内
+                if (c == '}') {
+                    break;
+                }
+                // 找到#{,记录位置
+                if (i > 0 && c == '{' && chars.charAt(i - 1) == '#') {
+                    exprStart = i - 1;
+                    break;
+                }
+                // 如果遇到<或>,说明不在表达式内
+                if (c == '<' || c == '>') {
+                    break;
+                }
+            }
+
+            // 如果找到了#{,继续向后查找}
+            if (exprStart >= 0) {
+                for (int i = offset; i < textLength; i++) {
+                    char c = chars.charAt(i);
+                    if (c == '}') {
+                        exprEnd = i;
+                        break;
+                    }
+                    // 如果遇到<或>,说明表达式不完整
+                    if (c == '<' || c == '>') {
+                        break;
+                    }
+                }
+            }
+
+            // 如果在#{}表达式内,提取表达式内的文本
+            // 条件:找到了#{,并且(没找到}或者}在光标之后)
+            if (exprStart >= 0) {
+                // 提取#{和光标之间的文本(不包括#{)
+                String text = document.getText().substring(exprStart + 2, offset);
+                // 如果找到了}且在光标之后,或者没找到},都认为在表达式内
+                int effectiveExprEnd = exprEnd >= 0 ? exprEnd : offset;
+                return new TextExtractionResult(text, exprStart, effectiveExprEnd);
+            }
+
+            // 不在#{}表达式内,使用原有逻辑提取普通文本
             int startPos = offset;
             while (startPos > 0) {
-                char c = document.getCharsSequence().charAt(startPos - 1);
+                char c = chars.charAt(startPos - 1);
                 // 遇到空白字符、<、>、{、}等分隔符就停止
                 if (Character.isWhitespace(c) || c == '<' || c == '>' || c == '{' || c == '}') {
                     break;
@@ -559,8 +506,8 @@ public class MyBatisXmlCompletionContributor extends CompletionContributor {
                 startPos--;
             }
 
-            // 只提取从 startPos 到 offset 之间的文本(不包括光标后的内容)
-            return document.getText().substring(startPos, offset);
+            String text = document.getText().substring(startPos, offset);
+            return new TextExtractionResult(text, -1, -1);
         }
 
         /**
@@ -568,7 +515,7 @@ public class MyBatisXmlCompletionContributor extends CompletionContributor {
          *
          * @param position         当前位置
          * @param method           Mapper方法
-         * @param currentText      当前文本
+         * @param textResult       文本提取结果
          * @param isInXmlAttribute 是否在XML属性中
          * @return 补全上下文
          * @since 1.0.0
@@ -576,10 +523,12 @@ public class MyBatisXmlCompletionContributor extends CompletionContributor {
         @NotNull
         private CompletionContext buildCompletionContext(@NotNull PsiElement position,
                                                          @NotNull PsiMethod method,
-                                                         @NotNull String currentText,
+                                                         @NotNull TextExtractionResult textResult,
                                                          boolean isInXmlAttribute) {
             Project project = position.getProject();
             Editor editor = FileEditorManager.getInstance(project).getSelectedTextEditor();
+
+            String currentText = textResult.getCurrentText();
 
             // 解析表达式
             MyBatisExpressionParser.ExpressionParseResult parseResult =
@@ -617,6 +566,8 @@ public class MyBatisXmlCompletionContributor extends CompletionContributor {
                     .tagName(tagName)
                     .attributeName(attributeName)
                     .completionType(completionType)
+                    .expressionStartOffset(textResult.getExpressionStartOffset())
+                    .expressionEndOffset(textResult.getExpressionEndOffset())
                     .build();
         }
 

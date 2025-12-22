@@ -235,12 +235,11 @@
                                   implementation="io.github.easy.tools.service.mybatis.MyBatisParamReferenceContributor"/>
 
         <!-- 注册MyBatis XML代码补全贡献者,用于参数智能提示 -->
-        <!-- 使用最高优先级确保在DTD补全之前执行 -->
-        <completion.contributor language="XML"
-                                order="first, before xmlLocation"
+        <!-- 不指定language以支持语言注入场景(如XML中的SQL注入为MySQL) -->
+        <completion.contributor language="any"
+                                order="first, before sql"
                                 id="io.github.easy.tools.mybatis.completion"
                                 implementationClass="io.github.easy.tools.service.mybatis.MyBatisXmlCompletionContributor"/>
-
     </extensions>
 
     <!-- Plugin metadata -->

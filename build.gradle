@@ -28,7 +28,7 @@ repositories {
     intellijPlatform {
         defaultRepositories()
         // 使用本地 IDE 时，需要 localPlatformArtifacts 来处理本地依赖
-        localPlatformArtifacts()
+//        localPlatformArtifacts()
     }
 }
 
@@ -36,10 +36,10 @@ dependencies {
     // IntelliJ Platform依赖 (2.x新语法)
     intellijPlatform {
         // 使用本地安装的 IDEA 作为测试平台（Mac）
-        local('/Applications/IntelliJ IDEA.app')
+//        local('/Applications/IntelliJ IDEA.app')
 
         // 如需切换回下载版本，使用以下配置：
-        // create(providers.gradleProperty('platformType').get(), providers.gradleProperty('platformVersion').get())
+         create(providers.gradleProperty('platformType').get(), providers.gradleProperty('platformVersion').get())
 
         // 绑定插件
         bundledPlugin('com.intellij.java')

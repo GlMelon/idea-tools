@@ -124,7 +124,7 @@ public class TagTemplateCompletionStrategy implements CompletionStrategy {
             return;
         }
 
-        // 最后一部分是关键字
+        // 最后一部分是关键字（可能是空字符串或部分关键字）
         String keyword = parts[parts.length - 1].toLowerCase();
 
         // 前面部分是表达式
@@ -142,21 +142,26 @@ public class TagTemplateCompletionStrategy implements CompletionStrategy {
             return;
         }
 
+        // 使用自定义前缀匹配器，只匹配标签关键字部分
+        // 例如：输入"query.endTime."，keyword=""，匹配所有标签
+        // 例如：输入"query.endTime.i"，keyword="i"，匹配if和ifnull
+        CompletionResultSet tagResult = result.withPrefixMatcher(keyword);
+
         // 提供匹配的模板
         for (TagTemplate template : this.templates) {
-            if (template.getKeyword().startsWith(keyword)) {
-                String fieldName = this.extractFieldName(parts);
-                LookupElementBuilder builder = LookupElementBuilder
-                        .create(template.getKeyword())
-                        .withIcon(AllIcons.Nodes.Tag)
-                        .withTypeText("MyBatis标签")
-                        .withTailText(" " + template.getDescription(), true)
-                        .withInsertHandler(new TagTemplateInsertHandler(template, expression, fieldName));
+            // 由于使用了自定义PrefixMatcher，这里不需要手动检查startsWith
+            // PrefixMatcher会自动过滤
+            String fieldName = this.extractFieldName(parts);
+            LookupElementBuilder builder = LookupElementBuilder
+                    .create(template.getKeyword())
+                    .withIcon(AllIcons.Nodes.Tag)
+                    .withTypeText("MyBatis标签")
+                    .withTailText(" " + template.getDescription(), true)
+                    .withInsertHandler(new TagTemplateInsertHandler(template, expression, fieldName));
 
-                // 为补全项添加高优先级,确保在其他插件之前显示
-                LookupElement prioritized = PrioritizedLookupElement.withPriority(builder, 100.0);
-                result.addElement(prioritized);
-            }
+            // 为补全项添加高优先级,确保在其他插件之前显示
+            LookupElement prioritized = PrioritizedLookupElement.withPriority(builder, 100.0);
+            tagResult.addElement(prioritized);
         }
     }
 
@@ -174,12 +179,47 @@ public class TagTemplateCompletionStrategy implements CompletionStrategy {
             return false;
         }
 
+        // 如果已经确定是TAG_TEMPLATE类型，直接返回true
+        if (context.getCompletionType() == CompletionContext.CompletionType.TAG_TEMPLATE) {
+            return true;
+        }
+
+        // 即使是FIELD类型，也检查是否可能是标签模板
+        // 这样可以同时提供字段补全和标签模板补全
         String currentText = context.getCurrentText();
         MyBatisExpressionParser.ExpressionParseResult parseResult =
                 MyBatisExpressionParser.parseForCompletion(currentText);
 
-        // 至少要有两个部分: 参数名 + 关键字
-        return parseResult.getParts().length >= 2;
+        // 至少要有两个部分: 参数名 + 关键字或字段
+        if (parseResult.getParts().length < 2) {
+            return false;
+        }
+
+        // 检查最后一部分是否可能是标签关键字
+        String lastPart = parseResult.getParts()[parseResult.getParts().length - 1].toLowerCase();
+        return this.isTagKeywordPrefix(lastPart);
+    }
+
+    /**
+     * 判断是否为标签关键字的前缀
+     *
+     * @param input 输入文本
+     * @return true如果是标签关键字的前缀
+     * @since 1.0.0
+     */
+    private boolean isTagKeywordPrefix(@NotNull String input) {
+        if (StrUtil.isBlank(input)) {
+            return true; // 空字符串匹配所有标签
+        }
+
+        // 检查是否是任何标签关键字的前缀
+        for (TagTemplate template : this.templates) {
+            if (template.getKeyword().startsWith(input)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

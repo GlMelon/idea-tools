@@ -85,6 +85,20 @@ public class CompletionContext {
     private CompletionType completionType = CompletionType.PARAMETER;
 
     /**
+     * 表达式开始位置(在XmlText中的#{}表达式),如果不在表达式内则为-1
+     *
+     */
+    @Builder.Default
+    private int expressionStartOffset = -1;
+
+    /**
+     * 表达式结束位置(在XmlText中的#{}表达式),如果不在表达式内则为-1
+     *
+     */
+    @Builder.Default
+    private int expressionEndOffset = -1;
+
+    /**
      * 补全类型枚举
      *
      * @author haijun
