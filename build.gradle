@@ -39,7 +39,7 @@ dependencies {
 //        local('/Applications/IntelliJ IDEA.app')
 
         // 如需切换回下载版本，使用以下配置：
-         create(providers.gradleProperty('platformType').get(), providers.gradleProperty('platformVersion').get())
+        create(providers.gradleProperty('platformType').get(), providers.gradleProperty('platformVersion').get())
 
         // 绑定插件
         bundledPlugin('com.intellij.java')
@@ -52,7 +52,7 @@ dependencies {
     }
 
     // 第三方依赖
-    implementation "cn.hutool:hutool-all:${providers.gradleProperty('hutool.version').get()}"
+//    implementation "cn.hutool:hutool-all:${providers.gradleProperty('hutool.version').get()}"
     implementation "com.fasterxml.jackson.core:jackson-databind:${providers.gradleProperty('jackson.version').get()}"
 
     compileOnly "org.projectlombok:lombok:${providers.gradleProperty('lombok.version').get()}"

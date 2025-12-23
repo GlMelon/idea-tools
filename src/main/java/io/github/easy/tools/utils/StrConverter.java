@@ -1,6 +1,6 @@
 package io.github.easy.tools.utils;
 
-import cn.hutool.core.util.StrUtil;
+import io.github.easy.tools.action.conversion.PropertyNameConverter;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -23,14 +23,14 @@ public class StrConverter {
      * @return String
      */
     public static String firstUpperConverter(String className) {
-        return Arrays.stream(StrUtil.toUnderlineCase(className).split("_"))
-                .map(StrUtil::upperFirst)
+        return Arrays.stream(PropertyNameConverter.toLowerUnderline(className).split("_"))
+                .map(StrConverter::upperFirst)
                 .collect(Collectors.joining(" "));
     }
 
     public static String firstLowerConverter(String className) {
-        return Arrays.stream(StrUtil.toUnderlineCase(className).split("_"))
-                .map(StrUtil::lowerFirst)
+        return Arrays.stream(PropertyNameConverter.toLowerUnderline(className).split("_"))
+                .map(StrConverter::lowerFirst)
                 .collect(Collectors.joining(" "));
     }
 
@@ -64,8 +64,34 @@ public class StrConverter {
         }
 
         // 使用标准的驼峰命名分割方法
-        return Arrays.stream(StrUtil.toUnderlineCase(className).split("_"))
+        return Arrays.stream(PropertyNameConverter.toLowerUnderline(className).split("_"))
                 .map(String::toLowerCase)
                 .collect(Collectors.joining(" "));
+    }
+
+    /**
+     * 将字符串首字母转为大写
+     *
+     * @param str 字符串
+     * @return 首字母大写的字符串
+     */
+    private static String upperFirst(String str) {
+        if (str == null || str.isEmpty()) {
+            return str;
+        }
+        return Character.toUpperCase(str.charAt(0)) + str.substring(1);
+    }
+
+    /**
+     * 将字符串首字母转为小写
+     *
+     * @param str 字符串
+     * @return 首字母小写的字符串
+     */
+    private static String lowerFirst(String str) {
+        if (str == null || str.isEmpty()) {
+            return str;
+        }
+        return Character.toLowerCase(str.charAt(0)) + str.substring(1);
     }
 }

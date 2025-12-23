@@ -1,7 +1,6 @@
 package io.github.easy.tools.service.database;
 
-import cn.hutool.core.collection.CollUtil;
-import cn.hutool.core.util.StrUtil;
+import com.intellij.openapi.util.text.StringUtil;
 import io.github.easy.tools.ui.config.CodeGenConfigState;
 import lombok.Builder;
 import lombok.Data;
@@ -40,7 +39,7 @@ public class DatabaseMetadataService {
             return "数据源配置为空";
         }
 
-        if (StrUtil.isBlank(dataSource.getJdbcUrl())) {
+        if (StringUtil.isEmpty(dataSource.getJdbcUrl())) {
             return "JDBC URL 不能为空";
         }
 
@@ -69,7 +68,7 @@ public class DatabaseMetadataService {
      */
     public List<String> listTables(CodeGenConfigState.DataSourceConfig dataSource) throws SQLException {
         List<String> tables = new ArrayList<>();
-        if (dataSource == null || StrUtil.isBlank(dataSource.getJdbcUrl())) {
+        if (dataSource == null || StringUtil.isEmpty(dataSource.getJdbcUrl())) {
             return tables;
         }
 
@@ -82,7 +81,7 @@ public class DatabaseMetadataService {
             try (ResultSet rs = metaData.getTables(catalog, schemaPattern, "%", new String[]{"TABLE"})) {
                 while (rs.next()) {
                     String tableName = rs.getString("TABLE_NAME");
-                    if (StrUtil.isNotBlank(tableName)) {
+                    if (StringUtil.isNotEmpty(tableName)) {
                         tables.add(tableName);
                     }
                 }
@@ -100,7 +99,7 @@ public class DatabaseMetadataService {
      * @throws SQLException SQL异常
      */
     public TableMetadata getTableMetadata(CodeGenConfigState.DataSourceConfig dataSource, String tableName) throws SQLException {
-        if (dataSource == null || StrUtil.isBlank(tableName)) {
+        if (dataSource == null || StringUtil.isEmpty(tableName)) {
             return null;
         }
 
@@ -160,7 +159,7 @@ public class DatabaseMetadataService {
     public String getTableDDL(CodeGenConfigState.DataSourceConfig dataSource, String tableName) {
         try {
             TableMetadata metadata = this.getTableMetadata(dataSource, tableName);
-            if (metadata == null || CollUtil.isEmpty(metadata.getColumns())) {
+            if (metadata == null || metadata.getColumns() == null || metadata.getColumns().isEmpty()) {
                 return "-- 无法获取表结构信息";
             }
 
@@ -181,7 +180,7 @@ public class DatabaseMetadataService {
                     ddl.append(" NOT NULL");
                 }
 
-                if (StrUtil.isNotBlank(column.getColumnComment())) {
+                if (StringUtil.isNotEmpty(column.getColumnComment())) {
                     ddl.append(" COMMENT '").append(column.getColumnComment()).append("'");
                 }
 
@@ -201,7 +200,7 @@ public class DatabaseMetadataService {
 
             ddl.append(")");
 
-            if (StrUtil.isNotBlank(metadata.getTableComment())) {
+            if (StringUtil.isNotEmpty(metadata.getTableComment())) {
                 ddl.append(" COMMENT='").append(metadata.getTableComment()).append("'");
             }
             ddl.append(";");
@@ -233,7 +232,7 @@ public class DatabaseMetadataService {
      * @return 驱动类名
      */
     private String getDriverClass(String driverType) {
-        return switch (StrUtil.blankToDefault(driverType, "mysql").toLowerCase()) {
+        return switch (StringUtil.notNullize(driverType, "mysql").toLowerCase()) {
             case "mysql" -> "com.mysql.cj.jdbc.Driver";
             case "postgresql" -> "org.postgresql.Driver";
             case "sqlserver" -> "com.microsoft.sqlserver.jdbc.SQLServerDriver";
@@ -285,7 +284,7 @@ public class DatabaseMetadataService {
      * @return 是否需要长度
      */
     private boolean needsSize(String columnType) {
-        if (StrUtil.isBlank(columnType)) {
+        if (StringUtil.isEmpty(columnType)) {
             return false;
         }
         String type = columnType.toUpperCase();

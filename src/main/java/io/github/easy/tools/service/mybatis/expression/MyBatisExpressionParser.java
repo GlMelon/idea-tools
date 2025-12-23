@@ -1,7 +1,6 @@
 package io.github.easy.tools.service.mybatis.expression;
 
-import cn.hutool.core.text.CharSequenceUtil;
-import cn.hutool.core.util.StrUtil;
+import com.intellij.openapi.util.text.StringUtil;
 import lombok.Builder;
 import lombok.Data;
 import org.jetbrains.annotations.NotNull;
@@ -104,7 +103,7 @@ public final class MyBatisExpressionParser {
 
         while (matcher.find()) {
             String content = matcher.group(1); // 提取{}中的内容
-            if (StrUtil.isNotBlank(content)) {
+            if (StringUtil.isNotEmpty(content)) {
                 variables.add(ExpressionVariable.builder()
                         .fullExpression(content.trim())
                         .startOffset(matcher.start(1))
@@ -134,12 +133,12 @@ public final class MyBatisExpressionParser {
     @NotNull
     public static ExpressionParseResult parseForCompletion(@NotNull String expression) {
         // 清理表达式,移除#{}包裹
-        String cleanExpression = StrUtil.trim(expression)
+        String cleanExpression = StringUtil.trim(expression)
                 .replace("#{", "")
                 .replace("${", "")
                 .replace("}", "");
 
-        if (StrUtil.isBlank(cleanExpression)) {
+        if (StringUtil.isEmpty(cleanExpression)) {
             return ExpressionParseResult.builder()
                     .rootParam("")
                     .prefixPath("")
@@ -149,7 +148,7 @@ public final class MyBatisExpressionParser {
         }
 
         // 使用hutool的split方法,保留空字符串
-        String[] parts = StrUtil.splitToArray(cleanExpression, '.');
+        String[] parts = cleanExpression.split("\\.", -1);
 
         if (parts.length == 0) {
             return ExpressionParseResult.builder()
@@ -177,7 +176,7 @@ public final class MyBatisExpressionParser {
         for (int i = 0; i < parts.length - 1; i++) {
             prefixParts.add(parts[i]);
         }
-        String prefixPath = CharSequenceUtil.join(".", prefixParts);
+        String prefixPath = String.join(".", prefixParts);
 
         // 最后一部分是当前正在输入的内容
         String currentInput = parts[parts.length - 1];
@@ -283,7 +282,7 @@ public final class MyBatisExpressionParser {
          * @since 1.0.0
          */
         public boolean hasDotSuffix() {
-            return this.parts != null && this.parts.length > 1 && StrUtil.isBlank(this.currentInput);
+            return this.parts != null && this.parts.length > 1 && StringUtil.isEmpty(this.currentInput);
         }
     }
 }

@@ -1,6 +1,6 @@
 package io.github.easy.tools.service.codegen;
 
-import cn.hutool.core.util.StrUtil;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.application.WriteAction;
 import com.intellij.openapi.project.Project;
@@ -149,7 +149,7 @@ public class CodeGenService {
         StringBuilder sb = new StringBuilder();
         sb.append("表名: ").append(tableMetadata.getTableName()).append("\n");
         
-        if (StrUtil.isNotBlank(tableMetadata.getTableComment())) {
+        if (StringUtil.isNotEmpty(tableMetadata.getTableComment())) {
             sb.append("表注释: ").append(tableMetadata.getTableComment()).append("\n");
         }
         
@@ -173,7 +173,7 @@ public class CodeGenService {
                 sb.append(" [非空]");
             }
             
-            if (StrUtil.isNotBlank(column.getColumnComment())) {
+            if (StringUtil.isNotEmpty(column.getColumnComment())) {
                 sb.append(" - ").append(column.getColumnComment());
             }
             
@@ -198,9 +198,9 @@ public class CodeGenService {
         promptBuilder.append(PromptConstants.CODE_GENERATION_SYSTEM_PROMPT).append("\n\n");
         
         // 2. 如果有参考文件，读取其内容并添加到提示词
-        if (StrUtil.isNotBlank(template.getReferenceFilePath())) {
+        if (StringUtil.isNotEmpty(template.getReferenceFilePath())) {
             String referenceContent = this.readReferenceFile(project, template.getReferenceFilePath());
-            if (StrUtil.isNotBlank(referenceContent)) {
+            if (StringUtil.isNotEmpty(referenceContent)) {
                 String fileExtension = this.getFileExtension(template.getReferenceFilePath());
                 String language = this.getLanguageFromExtension(fileExtension);
                 
@@ -214,7 +214,7 @@ public class CodeGenService {
         
         // 3. 添加用户提示词（自定义或默认）
         String userPrompt;
-        if (template.isUseCustomPrompt() && StrUtil.isNotBlank(template.getCustomPrompt())) {
+        if (template.isUseCustomPrompt() && StringUtil.isNotEmpty(template.getCustomPrompt())) {
             userPrompt = template.getCustomPrompt();
         } else {
             userPrompt = PromptConstants.CODE_GENERATION_DEFAULT_PROMPT;
@@ -239,7 +239,7 @@ public class CodeGenService {
         LLMConfigState.ModelConfig modelConfig;
         
         // 如果模板指定了大模型类型，使用指定的模型
-        if (StrUtil.isNotBlank(template.getSelectedModelType())) {
+        if (StringUtil.isNotEmpty(template.getSelectedModelType())) {
             modelConfig = llmState.getModelConfig(template.getSelectedModelType());
         } else {
             // 否则使用默认模型
@@ -265,7 +265,7 @@ public class CodeGenService {
      * @return 清理后的代码
      */
     private String cleanGeneratedCode(String code) {
-        if (StrUtil.isBlank(code)) {
+        if (StringUtil.isEmpty(code)) {
             return code;
         }
         
@@ -286,7 +286,7 @@ public class CodeGenService {
      * @return 解析后的文件名
      */
     private String parseFileName(String pattern, String tableName, CodeGenConfigState.TemplateConfig template) {
-        if (StrUtil.isBlank(pattern)) {
+        if (StringUtil.isEmpty(pattern)) {
             return tableName + ".java";
         }
         
@@ -298,9 +298,9 @@ public class CodeGenService {
         fileName = fileName.replace("${camelTableName}", camelTableName);
         
         // 根据参考文件类型调整文件扩展名
-        if (StrUtil.isNotBlank(template.getReferenceFilePath())) {
+        if (StringUtil.isNotEmpty(template.getReferenceFilePath())) {
             String referenceExtension = this.getFileExtension(template.getReferenceFilePath());
-            if (StrUtil.isNotBlank(referenceExtension) && !fileName.endsWith("." + referenceExtension)) {
+            if (StringUtil.isNotEmpty(referenceExtension) && !fileName.endsWith("." + referenceExtension)) {
                 // 移除原有扩展名
                 int lastDotIndex = fileName.lastIndexOf('.');
                 if (lastDotIndex > 0) {
@@ -322,7 +322,7 @@ public class CodeGenService {
      * @return 驼峰字符串
      */
     private String toCamelCase(String str, boolean capitalFirst) {
-        if (StrUtil.isBlank(str)) {
+        if (StringUtil.isEmpty(str)) {
             return str;
         }
         
@@ -349,7 +349,7 @@ public class CodeGenService {
      * @return 文件内容
      */
     private String readReferenceFile(Project project, String referenceFilePath) {
-        if (StrUtil.isBlank(referenceFilePath)) {
+        if (StringUtil.isEmpty(referenceFilePath)) {
             return "";
         }
         
@@ -389,7 +389,7 @@ public class CodeGenService {
      * @return 扩展名（不包含点）
      */
     private String getFileExtension(String filePath) {
-        if (StrUtil.isBlank(filePath)) {
+        if (StringUtil.isEmpty(filePath)) {
             return "";
         }
         
@@ -408,7 +408,7 @@ public class CodeGenService {
      * @return 语言名称
      */
     private String getLanguageFromExtension(String extension) {
-        if (StrUtil.isBlank(extension)) {
+        if (StringUtil.isEmpty(extension)) {
             return "Java";
         }
         
@@ -438,7 +438,7 @@ public class CodeGenService {
      * @throws IOException IO异常
      */
     private String writeCodeToFile(Project project, String targetDir, String fileName, String code) throws IOException {
-        if (StrUtil.isBlank(targetDir)) {
+        if (StringUtil.isEmpty(targetDir)) {
             throw new IllegalArgumentException("目标目录不能为空");
         }
         

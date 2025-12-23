@@ -1,6 +1,6 @@
 package io.github.easy.tools.service.mybatis.completion.strategy;
 
-import cn.hutool.core.util.StrUtil;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.codeInsight.completion.CompletionResultSet;
 import com.intellij.codeInsight.completion.InsertHandler;
 import com.intellij.codeInsight.completion.InsertionContext;
@@ -70,7 +70,7 @@ public class ParameterCompletionStrategy implements CompletionStrategy {
 
             // 获取@Param注解的值
             String annotationValue = MyBatisUtils.getParamAnnotationValue(parameter);
-            if (StrUtil.isNotBlank(annotationValue)) {
+            if (StringUtil.isNotEmpty(annotationValue)) {
                 paramName = annotationValue;
             }
 

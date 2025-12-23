@@ -1,6 +1,6 @@
 package io.github.easy.tools.service.mybatis.completion.strategy;
 
-import cn.hutool.core.util.StrUtil;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.codeInsight.completion.CompletionResultSet;
 import com.intellij.codeInsight.completion.InsertHandler;
 import com.intellij.codeInsight.completion.InsertionContext;
@@ -65,7 +65,7 @@ public class FieldCompletionStrategy implements CompletionStrategy {
                 MyBatisExpressionParser.parseForCompletion(context.getCurrentText());
 
         String rootParam = parseResult.getRootParam();
-        if (StrUtil.isBlank(rootParam)) {
+        if (StringUtil.isEmpty(rootParam)) {
             return;
         }
 
@@ -140,7 +140,7 @@ public class FieldCompletionStrategy implements CompletionStrategy {
         for (PsiParameter param : method.getParameterList().getParameters()) {
             String name = param.getName();
             String annotationValue = MyBatisUtils.getParamAnnotationValue(param);
-            if (StrUtil.isNotBlank(annotationValue)) {
+            if (StringUtil.isNotEmpty(annotationValue)) {
                 name = annotationValue;
             }
             if (paramName.equals(name)) {
@@ -249,7 +249,7 @@ public class FieldCompletionStrategy implements CompletionStrategy {
 
             // 不需要手动模糊匹配，PrefixMatcher会自动过滤
             // 构建完整的路径（用于展示）
-            String fullPath = StrUtil.isBlank(prefixPath) ? fieldName : prefixPath + "." + fieldName;
+            String fullPath = StringUtil.isEmpty(prefixPath) ? fieldName : prefixPath + "." + fieldName;
 
             // 提取字段描述
             String fieldDescription = this.extractFieldDescription(field);
@@ -263,7 +263,7 @@ public class FieldCompletionStrategy implements CompletionStrategy {
                     .withInsertHandler(new FieldInsertHandler(isInXmlAttribute, prefixPath, fullPath, context));
 
             // 如果有描述信息,添加到tailText中
-            if (StrUtil.isNotBlank(fieldDescription)) {
+            if (StringUtil.isNotEmpty(fieldDescription)) {
                 builder = builder.withTailText(" " + field.getType().getPresentableText() + " - " + fieldDescription, true);
             } else {
                 builder = builder.withTailText(" " + field.getType().getPresentableText(), true);
@@ -288,7 +288,7 @@ public class FieldCompletionStrategy implements CompletionStrategy {
         PsiAnnotation schemaAnnotation = field.getAnnotation("io.swagger.v3.oas.annotations.media.Schema");
         if (schemaAnnotation != null) {
             String description = this.getAnnotationAttributeValue(schemaAnnotation, "description");
-            if (StrUtil.isNotBlank(description)) {
+            if (StringUtil.isNotEmpty(description)) {
                 return description;
             }
         }
@@ -297,7 +297,7 @@ public class FieldCompletionStrategy implements CompletionStrategy {
         PsiAnnotation apiModelPropertyAnnotation = field.getAnnotation("io.swagger.annotations.ApiModelProperty");
         if (apiModelPropertyAnnotation != null) {
             String value = this.getAnnotationAttributeValue(apiModelPropertyAnnotation, "value");
-            if (StrUtil.isNotBlank(value)) {
+            if (StringUtil.isNotEmpty(value)) {
                 return value;
             }
         }
@@ -306,7 +306,7 @@ public class FieldCompletionStrategy implements CompletionStrategy {
         PsiDocComment docComment = field.getDocComment();
         if (docComment != null) {
             String javadocDescription = this.extractJavadocDescription(docComment);
-            if (StrUtil.isNotBlank(javadocDescription)) {
+            if (StringUtil.isNotEmpty(javadocDescription)) {
                 return javadocDescription;
             }
         }
@@ -331,13 +331,13 @@ public class FieldCompletionStrategy implements CompletionStrategy {
         StringBuilder description = new StringBuilder();
         for (PsiElement element : descriptionElements) {
             String text = element.getText().trim();
-            if (StrUtil.isNotBlank(text)) {
+            if (StringUtil.isNotEmpty(text)) {
                 description.append(text).append(" ");
             }
         }
 
         String result = description.toString().trim();
-        if (StrUtil.isBlank(result)) {
+        if (StringUtil.isEmpty(result)) {
             return "";
         }
 

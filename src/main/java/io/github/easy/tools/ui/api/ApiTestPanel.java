@@ -1,7 +1,7 @@
 package io.github.easy.tools.ui.api;
 
-import cn.hutool.core.util.StrUtil;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTabbedPane;
 import com.intellij.ui.table.JBTable;
@@ -9,11 +9,26 @@ import io.github.easy.tools.entity.api.ApiInfo;
 import io.github.easy.tools.service.api.ApiTestService;
 import io.github.easy.tools.ui.config.ApiTestConfigState;
 
-import javax.swing.*;
+import javax.swing.BorderFactory;
+import javax.swing.DefaultCellEditor;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JSplitPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.SwingWorker;
 import javax.swing.table.DefaultTableModel;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.GridLayout;
+import java.awt.Insets;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -29,39 +44,82 @@ import java.util.Map;
  *
  * @author haijun
  * @since 1.0.0
+ * @date 2025-12-23 09:37:30
+ * @version 1.0.0
  */
 public class ApiTestPanel extends JPanel {
 
+    /**
+     * project
+     */
     private final Project project;
+    /**
+     * api test service
+     */
     private final ApiTestService apiTestService;
-    
-    // 当前选中的API
+
+    /**
+     * current api
+     */ // 当前选中的API
     private ApiInfo currentApi;
-    
-    // 请求配置Tab组件
+
+    /**
+     * method label
+     */ // 请求配置Tab组件
     private JLabel methodLabel;
+    /**
+     * url label
+     */
     private JLabel urlLabel;
+    /**
+     * interface headers table
+     */
     private JBTable interfaceHeadersTable;
+    /**
+     * interface headers model
+     */
     private DefaultTableModel interfaceHeadersModel;
+    /**
+     * body area
+     */
     private JTextArea bodyArea;
+    /**
+     * execute button
+     */
     private JButton executeButton;
-    
-    // 响应结果Tab组件
+
+    /**
+     * status label
+     */ // 响应结果Tab组件
     private JLabel statusLabel;
+    /**
+     * response headers area
+     */
     private JTextArea responseHeadersArea;
+    /**
+     * response body area
+     */
     private JTextArea responseBodyArea;
-    
-    // 全局配置Tab组件
+
+    /**
+     * global headers table
+     */ // 全局配置Tab组件
     private JBTable globalHeadersTable;
+    /**
+     * global headers model
+     */
     private DefaultTableModel globalHeadersModel;
-    
-    // Tab容器
+
+    /**
+     * tabbed pane
+     */ // Tab容器
     private JBTabbedPane tabbedPane;
 
     /**
      * 构造函数
      *
      * @param project 项目实例
+     * @since 1.0.0
      */
     public ApiTestPanel(Project project) {
         this.project = project;
@@ -71,59 +129,64 @@ public class ApiTestPanel extends JPanel {
 
     /**
      * 初始化UI界面
+     *
+     * @since 1.0.0
      */
     private void initializeUI() {
         this.setLayout(new BorderLayout());
-        
+
         // 创建Tab面板
         this.tabbedPane = new JBTabbedPane();
-        
+
         // Tab 1: 请求配置
         JPanel requestPanel = this.createRequestPanel();
         this.tabbedPane.addTab("请求配置", requestPanel);
-        
+
         // Tab 2: 响应结果
         JPanel responsePanel = this.createResponsePanel();
         this.tabbedPane.addTab("响应结果", responsePanel);
-        
+
         // Tab 3: 全局配置
         JPanel globalPanel = this.createGlobalPanel();
         this.tabbedPane.addTab("全局配置", globalPanel);
-        
+
         this.add(this.tabbedPane, BorderLayout.CENTER);
     }
 
     /**
      * 创建请求配置面板
+     *
+     * @return panel
+     * @since 1.0.0
      */
     private JPanel createRequestPanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
+
         // 顶部：API基本信息
         JPanel infoPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(3, 5, 3, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        
+
         gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0;
         infoPanel.add(new JLabel("方法:"), gbc);
         gbc.gridx = 1; gbc.weightx = 1;
         this.methodLabel = new JLabel("-");
         this.methodLabel.setFont(this.methodLabel.getFont().deriveFont(Font.BOLD));
         infoPanel.add(this.methodLabel, gbc);
-        
+
         gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0;
         infoPanel.add(new JLabel("URL:"), gbc);
         gbc.gridx = 1; gbc.weightx = 1;
         this.urlLabel = new JLabel("-");
         infoPanel.add(this.urlLabel, gbc);
-        
+
         panel.add(infoPanel, BorderLayout.NORTH);
-        
+
         // 中部：请求头与请求体
         JPanel contentPanel = new JPanel(new GridLayout(2, 1, 5, 5));
-        
+
         // 接口级请求头
         JPanel headerPanel = new JPanel(new BorderLayout(3, 3));
         JPanel headerTitlePanel = new JPanel(new BorderLayout());
@@ -139,7 +202,7 @@ public class ApiTestPanel extends JPanel {
         headerBtnPanel.add(removeHeaderBtn);
         headerTitlePanel.add(headerBtnPanel, BorderLayout.EAST);
         headerPanel.add(headerTitlePanel, BorderLayout.NORTH);
-        
+
         String[] headerColumns = {"名称", "值类型", "值/表达式", "来源URL", "来源方法", "来源Body"};
         this.interfaceHeadersModel = new DefaultTableModel(headerColumns, 0) {
             @Override
@@ -153,18 +216,18 @@ public class ApiTestPanel extends JPanel {
         JComboBox<String> typeCombo = new JComboBox<>(new String[]{"FIXED", "DYNAMIC"});
         this.interfaceHeadersTable.getColumnModel().getColumn(1).setCellEditor(new DefaultCellEditor(typeCombo));
         headerPanel.add(new JBScrollPane(this.interfaceHeadersTable), BorderLayout.CENTER);
-        
+
         contentPanel.add(headerPanel);
-        
+
         // 请求体
         JPanel bodyPanel = new JPanel(new BorderLayout(3, 3));
         bodyPanel.add(new JLabel("请求体 (JSON):"), BorderLayout.NORTH);
         this.bodyArea = new JTextArea(8, 40);
         bodyPanel.add(new JBScrollPane(this.bodyArea), BorderLayout.CENTER);
-        
+
         contentPanel.add(bodyPanel);
         panel.add(contentPanel, BorderLayout.CENTER);
-        
+
         // 底部：执行按钮
         JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
         this.executeButton = new JButton("执行测试");
@@ -172,17 +235,20 @@ public class ApiTestPanel extends JPanel {
         this.executeButton.addActionListener(e -> this.executeTest());
         actionPanel.add(this.executeButton);
         panel.add(actionPanel, BorderLayout.SOUTH);
-        
+
         return panel;
     }
 
     /**
      * 创建响应结果面板
+     *
+     * @return panel
+     * @since 1.0.0
      */
     private JPanel createResponsePanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
+
         // 顶部：状态信息
         JPanel statusPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         statusPanel.add(new JLabel("状态:"));
@@ -190,11 +256,11 @@ public class ApiTestPanel extends JPanel {
         this.statusLabel.setFont(this.statusLabel.getFont().deriveFont(Font.BOLD));
         statusPanel.add(this.statusLabel);
         panel.add(statusPanel, BorderLayout.NORTH);
-        
+
         // 中部：响应头与响应体
         JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
         splitPane.setDividerLocation(120);
-        
+
         // 响应头
         JPanel respHeaderPanel = new JPanel(new BorderLayout(3, 3));
         respHeaderPanel.add(new JLabel("响应头:"), BorderLayout.NORTH);
@@ -202,7 +268,7 @@ public class ApiTestPanel extends JPanel {
         this.responseHeadersArea.setEditable(false);
         respHeaderPanel.add(new JBScrollPane(this.responseHeadersArea), BorderLayout.CENTER);
         splitPane.setTopComponent(respHeaderPanel);
-        
+
         // 响应体
         JPanel respBodyPanel = new JPanel(new BorderLayout(3, 3));
         respBodyPanel.add(new JLabel("响应体:"), BorderLayout.NORTH);
@@ -210,26 +276,29 @@ public class ApiTestPanel extends JPanel {
         this.responseBodyArea.setEditable(false);
         respBodyPanel.add(new JBScrollPane(this.responseBodyArea), BorderLayout.CENTER);
         splitPane.setBottomComponent(respBodyPanel);
-        
+
         panel.add(splitPane, BorderLayout.CENTER);
-        
+
         return panel;
     }
 
     /**
      * 创建全局配置面板
+     *
+     * @return panel
+     * @since 1.0.0
      */
     private JPanel createGlobalPanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
+
         // 顶部：说明与基础URL配置
         JPanel topPanel = new JPanel(new BorderLayout(5, 5));
-        
+
         // 配置说明
         JLabel descLabel = new JLabel("<html><b>全局请求头配置</b><br/>这些请求头将应用于所有API测试请求（优先级低于接口级请求头）</html>");
         topPanel.add(descLabel, BorderLayout.NORTH);
-        
+
         // 基础URL配置
         JPanel baseUrlPanel = new JPanel(new BorderLayout(5, 5));
         baseUrlPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
@@ -247,9 +316,9 @@ public class ApiTestPanel extends JPanel {
         baseUrlLine.add(saveBaseUrlBtn, BorderLayout.EAST);
         baseUrlPanel.add(baseUrlLine, BorderLayout.NORTH);
         topPanel.add(baseUrlPanel, BorderLayout.CENTER);
-        
+
         panel.add(topPanel, BorderLayout.NORTH);
-        
+
         // 中部：全局请求头表格
         JPanel tablePanel = new JPanel(new BorderLayout(3, 3));
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 3, 3));
@@ -263,7 +332,7 @@ public class ApiTestPanel extends JPanel {
         btnPanel.add(removeBtn);
         btnPanel.add(saveBtn);
         tablePanel.add(btnPanel, BorderLayout.NORTH);
-        
+
         String[] columns = {"名称", "值类型", "值/表达式", "来源URL", "来源方法", "来源Body"};
         this.globalHeadersModel = new DefaultTableModel(columns, 0) {
             @Override
@@ -276,16 +345,16 @@ public class ApiTestPanel extends JPanel {
         JComboBox<String> typeCombo = new JComboBox<>(new String[]{"FIXED", "DYNAMIC"});
         this.globalHeadersTable.getColumnModel().getColumn(1).setCellEditor(new DefaultCellEditor(typeCombo));
         tablePanel.add(new JBScrollPane(this.globalHeadersTable), BorderLayout.CENTER);
-        
+
         panel.add(tablePanel, BorderLayout.CENTER);
-        
+
         // 底部：动态表达式说明
         JPanel helpPanel = new JPanel(new BorderLayout());
         helpPanel.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createEmptyBorder(10, 0, 0, 0),
             BorderFactory.createTitledBorder("动态值表达式说明")
         ));
-        
+
         JTextArea helpText = new JTextArea();
         helpText.setEditable(false);
         helpText.setBackground(panel.getBackground());
@@ -310,17 +379,20 @@ public class ApiTestPanel extends JPanel {
             "  - 每次执行测试时，会先调用来源接口获取最新值"
         );
         helpPanel.add(new JBScrollPane(helpText), BorderLayout.CENTER);
-        
+
         panel.add(helpPanel, BorderLayout.SOUTH);
-        
+
         // 加载全局配置
         this.loadGlobalHeaders();
-        
+
         return panel;
     }
 
     /**
      * 更新当前选中的API
+     *
+     * @param apiInfo api info
+     * @since 1.0.0
      */
     public void updateSelectedApi(ApiInfo apiInfo) {
         this.currentApi = apiInfo;
@@ -329,7 +401,7 @@ public class ApiTestPanel extends JPanel {
             ApiTestConfigState cfg = ApiTestConfigState.getInstance(this.project);
             String base = cfg.baseUrl;
             String apiPath = apiInfo.getUrl();
-            if (StrUtil.isBlank(base) || apiPath == null) {
+            if (StringUtil.isEmpty(base) || apiPath == null) {
                 this.urlLabel.setText(apiPath);
             } else {
                 String b = base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
@@ -349,6 +421,8 @@ public class ApiTestPanel extends JPanel {
 
     /**
      * 显示全局配置面板（切换到全局配置Tab）
+     *
+     * @since 1.0.0
      */
     public void showGlobalConfig() {
         this.tabbedPane.setSelectedIndex(2);
@@ -356,6 +430,8 @@ public class ApiTestPanel extends JPanel {
 
     /**
      * 显示请求配置面板（切换到请求配置Tab）
+     *
+     * @since 1.0.0
      */
     public void showRequestConfig() {
         this.tabbedPane.setSelectedIndex(0);
@@ -363,6 +439,8 @@ public class ApiTestPanel extends JPanel {
 
     /**
      * 添加接口级请求头
+     *
+     * @since 1.0.0
      */
     private void addInterfaceHeader() {
         this.interfaceHeadersModel.addRow(new Object[]{"", "FIXED", "", "", "GET", ""});
@@ -370,6 +448,8 @@ public class ApiTestPanel extends JPanel {
 
     /**
      * 删除接口级请求头
+     *
+     * @since 1.0.0
      */
     private void removeInterfaceHeader() {
         int selectedRow = this.interfaceHeadersTable.getSelectedRow();
@@ -380,6 +460,8 @@ public class ApiTestPanel extends JPanel {
 
     /**
      * 添加全局请求头
+     *
+     * @since 1.0.0
      */
     private void addGlobalHeader() {
         this.globalHeadersModel.addRow(new Object[]{"", "FIXED", "", "", "GET", ""});
@@ -387,6 +469,8 @@ public class ApiTestPanel extends JPanel {
 
     /**
      * 删除全局请求头
+     *
+     * @since 1.0.0
      */
     private void removeGlobalHeader() {
         int selectedRow = this.globalHeadersTable.getSelectedRow();
@@ -397,6 +481,8 @@ public class ApiTestPanel extends JPanel {
 
     /**
      * 加载全局请求头配置
+     *
+     * @since 1.0.0
      */
     private void loadGlobalHeaders() {
         ApiTestConfigState cfg = ApiTestConfigState.getInstance(this.project);
@@ -417,6 +503,8 @@ public class ApiTestPanel extends JPanel {
 
     /**
      * 保存全局请求头配置
+     *
+     * @since 1.0.0
      */
     private void saveGlobalHeaders() {
         ApiTestConfigState cfg = ApiTestConfigState.getInstance(this.project);
@@ -438,13 +526,15 @@ public class ApiTestPanel extends JPanel {
 
     /**
      * 执行API测试
+     *
+     * @since 1.0.0
      */
     private void executeTest() {
         if (this.currentApi == null) {
             JOptionPane.showMessageDialog(this, "请先选择一个API接口", "提示", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        
+
         // 收集接口级请求头
         List<ApiTestConfigState.HeaderItem> interfaceHeaders = new ArrayList<>();
         for (int i = 0; i < this.interfaceHeadersModel.getRowCount(); i++) {
@@ -458,15 +548,15 @@ public class ApiTestPanel extends JPanel {
             item.setSourceBody((String) this.interfaceHeadersModel.getValueAt(i, 5));
             interfaceHeaders.add(item);
         }
-        
+
         String bodyJson = this.bodyArea.getText();
-        
+
         // 执行测试
         this.executeButton.setEnabled(false);
         this.statusLabel.setText("请求中...");
         this.responseHeadersArea.setText("");
         this.responseBodyArea.setText("");
-        
+
         SwingWorker<Map<String, Object>, Void> worker = new SwingWorker<Map<String, Object>, Void>() {
             @Override
             protected Map<String, Object> doInBackground() throws Exception {
@@ -477,7 +567,7 @@ public class ApiTestPanel extends JPanel {
                     bodyJson
                 );
             }
-            
+
             @Override
             protected void done() {
                 try {
@@ -486,9 +576,9 @@ public class ApiTestPanel extends JPanel {
                     @SuppressWarnings("unchecked")
                     Map<String, List<String>> headers = (Map<String, List<String>>) result.get("headers");
                     String body = (String) result.get("body");
-                    
+
                     ApiTestPanel.this.statusLabel.setText("HTTP " + statusCode);
-                    
+
                     // 显示响应头
                     StringBuilder headerText = new StringBuilder();
                     if (headers != null) {
@@ -500,7 +590,7 @@ public class ApiTestPanel extends JPanel {
                     }
                     ApiTestPanel.this.responseHeadersArea.setText(headerText.toString());
                     ApiTestPanel.this.responseBodyArea.setText(body);
-                    
+
                     // 切换到响应结果Tab
                     ApiTestPanel.this.tabbedPane.setSelectedIndex(1);
                 } catch (Exception e) {

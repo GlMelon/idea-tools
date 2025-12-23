@@ -1,17 +1,19 @@
 package io.github.easy.tools.ui.config;
 
-import cn.hutool.core.date.DateUtil;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
+import com.intellij.openapi.components.StoragePathMacros;
+import com.intellij.openapi.project.Project;
+import com.intellij.util.text.DateFormatUtil;
 import com.intellij.util.xmlb.XmlSerializerUtil;
 import io.github.easy.tools.constants.PromptConstants;
 import io.github.easy.tools.utils.TemplateUtils;
 import lombok.Data;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -19,14 +21,15 @@ import java.util.Map;
 
 /**
  * 文档配置服务类 <p> 该类负责管理文档生成相关的配置信息，包括模板、自定义参数等。 使用IntelliJ平台的持久化机制来保存和加载配置。 </p>
+ * <p>持久化范围：项目级（PROJECT级），不同项目可以有不同的配置</p>
  *
  * @author haijun
  * @date 2025-12-17 10:30:28
  * @version 1.0.0
  * @since 1.0.0
  */
-@Service(Service.Level.APP)
-@State(name = "EasyDocConfig", storages = @Storage("easy-doc-config.xml"))
+@Service(Service.Level.PROJECT)
+@State(name = "EasyDocConfig", storages = @Storage(StoragePathMacros.WORKSPACE_FILE))
 public final class DocConfigService implements PersistentStateComponent<DocConfigService> {
 
     /**
@@ -45,6 +48,12 @@ public final class DocConfigService implements PersistentStateComponent<DocConfi
      * PARAM DESCRIPTION
      */
     public static final String PARAM_DESCRIPTION = "description";
+
+    /**
+     * EMAIL
+     */
+    public static final String EMAIL = "email";
+
     /**
      * PARAM SINCE
      */
@@ -97,7 +106,7 @@ public final class DocConfigService implements PersistentStateComponent<DocConfi
              #end
              * @author ${author}
              #if( $email && $email != "" )
-             * @email ${email}
+             * @email "mailto:${email}"
              #end
              * @date ${date}
              * @version ${version}
@@ -216,10 +225,13 @@ public final class DocConfigService implements PersistentStateComponent<DocConfi
      */
     public Map<String, Object> getBaseParameters() {
         Map<String, Object> parameters = new LinkedHashMap<>();
-        parameters.put(PARAM_AUTHOR, System.getProperty("user.name"));
-        parameters.put(PARAM_DATE, DateUtil.now());
+        String userName = System.getProperty("user.name");
+        parameters.put(PARAM_AUTHOR, userName);
+        parameters.put(PARAM_DATE, DateFormatUtil.formatDateTime(new Date()));
         parameters.put(PARAM_VERSION, "1.0.0");
         parameters.put(PARAM_SINCE, "1.0.0");
+        parameters.put(DocConfigService.EMAIL, userName + "@email.com");
+
         // Expose template utilities for Velocity usage
         parameters.put("util", new TemplateUtils());
         return parameters;
@@ -242,13 +254,14 @@ public final class DocConfigService implements PersistentStateComponent<DocConfi
     }
 
     /**
-     * 获取配置服务的单例实例
+     * 获取配置服务的项目实例
      *
-     * @return DocConfigService的单例实例 instance
+     * @param project 项目实例
+     * @return DocConfigService的项目实例 instance
      * @since y.y.y
      */
-    public static DocConfigService getInstance() {
-        return ApplicationManager.getApplication().getService(DocConfigService.class);
+    public static DocConfigService getInstance(@NotNull Project project) {
+        return project.getService(DocConfigService.class);
     }
 
     /**

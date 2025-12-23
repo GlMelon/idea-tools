@@ -1,7 +1,8 @@
 package io.github.easy.tools.ui.config;
 
-import cn.hutool.core.util.StrUtil;
 import com.intellij.openapi.options.Configurable;
+import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.table.JBTable;
@@ -10,6 +11,7 @@ import io.github.easy.tools.action.doc.listener.FileSaveListenerManager;
 import io.github.easy.tools.entity.doc.Desc;
 import io.github.easy.tools.entity.doc.ParameterInfo;
 import io.github.easy.tools.ui.config.DocConfigService.CustomParam;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.BorderFactory;
@@ -43,6 +45,7 @@ import java.util.stream.Collectors;
 
 /**
  * <p> 配置界面类,实现Configurable接口,用于在IDEA设置中展示和管理文档模板配置 </p>
+ * <p> 该配置为项目级别配置，不同项目可以有不同的配置 </p>
  *
  * @author haijun
  * @email "mailto:zhonghaijun@zhxx.com"
@@ -51,6 +54,20 @@ import java.util.stream.Collectors;
  * @since 1.0.0
  */
 public class DocConfig implements Configurable {
+    /**
+     * 当前项目实例
+     */
+    private final Project project;
+
+    /**
+     * 构造函数
+     *
+     * @param project 项目实例
+     * @since 1.0.0
+     */
+    public DocConfig(@NotNull Project project) {
+        this.project = project;
+    }
     /**
      * 主面板组件
      */
@@ -207,7 +224,7 @@ public class DocConfig implements Configurable {
      */
     @Override
     public boolean isModified() {
-        DocConfigService config = DocConfigService.getInstance();
+        DocConfigService config = DocConfigService.getInstance(this.project);
         return this.isModified ||
                 !Objects.equals(this.classTemplate.getText(), config.classTemplate) ||
                 !Objects.equals(this.methodTemplate.getText(), config.methodTemplate) ||
@@ -239,7 +256,7 @@ public class DocConfig implements Configurable {
      */
     @Override
     public void apply() {
-        DocConfigService config = DocConfigService.getInstance();
+        DocConfigService config = DocConfigService.getInstance(this.project);
         config.classTemplate = this.classTemplate.getText();
         config.methodTemplate = this.methodTemplate.getText();
         config.fieldTemplate = this.fieldTemplate.getText();
@@ -279,11 +296,13 @@ public class DocConfig implements Configurable {
             String desc = (String) this.customVarTableModel.getValueAt(i, 1);
             String value = (String) this.customVarTableModel.getValueAt(i, 2);
 
-            if (StrUtil.isNotBlank(name)) {
+            if (StringUtil.isNotEmpty(name)) {
                 CustomParam param = new CustomParam();
                 param.setName(name.trim());
-                param.setDescription(StrUtil.blankToDefault(desc, name).trim());
-                param.setValue(StrUtil.blankToDefault(value, "").trim());
+                String description = StringUtil.defaultIfEmpty(desc, name).trim();
+                param.setDescription(description);
+                value = StringUtil.defaultIfEmpty(value, "").trim();
+                param.setValue(value);
                 customVars.add(param);
             }
         }
@@ -304,7 +323,7 @@ public class DocConfig implements Configurable {
                     String desc = param.getDescription();
                     String value = param.getValue();
 
-                    if (StrUtil.isNotBlank(desc) && !Objects.equals(desc, name)) {
+                    if (StringUtil.isNotEmpty(desc) && !Objects.equals(desc, name)) {
                         return String.format("%s(%s)=%s", name, desc, value);
                     }
                     return String.format("%s=%s", name, value);
@@ -555,7 +574,7 @@ public class DocConfig implements Configurable {
 
         // 基础参数
         DefaultMutableTreeNode baseNode = new DefaultMutableTreeNode("基础内置参数");
-        DocConfigService config = DocConfigService.getInstance();
+        DocConfigService config = DocConfigService.getInstance(this.project);
         Map<String, String> baseParams = config.getBaseTemplateParameters();
         for (Map.Entry<String, String> entry : baseParams.entrySet()) {
             baseNode.add(new DefaultMutableTreeNode(entry.getKey() + ": " + entry.getValue()));
@@ -659,7 +678,7 @@ public class DocConfig implements Configurable {
      * @since 1.0.0
      */
     private void loadConfigData() {
-        DocConfigService config = DocConfigService.getInstance();
+        DocConfigService config = DocConfigService.getInstance(this.project);
         this.classTemplate.setText(config.classTemplate);
         this.methodTemplate.setText(config.methodTemplate);
         this.fieldTemplate.setText(config.fieldTemplate);

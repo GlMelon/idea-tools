@@ -1,6 +1,6 @@
 package io.github.easy.tools.listener;
 
-import cn.hutool.core.util.StrUtil;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -88,7 +88,7 @@ public class MapperXmlChangeListener implements BulkFileListener {
                 }
 
                 String namespace = this.extractNamespace(xmlFile);
-                if (StrUtil.isNotBlank(namespace)) {
+                if (StringUtil.isNotEmpty(namespace)) {
                     MapperXmlCacheService.getInstance().addToCache(namespace, xmlFile);
                     log.debug("新增Mapper XML到缓存: namespace={}, file={}", namespace, virtualFile.getPath());
                 }
@@ -113,7 +113,7 @@ public class MapperXmlChangeListener implements BulkFileListener {
                 }
 
                 String namespace = this.extractNamespace(xmlFile);
-                if (StrUtil.isNotBlank(namespace)) {
+                if (StringUtil.isNotEmpty(namespace)) {
                     MapperXmlCacheService.getInstance().addToCache(namespace, xmlFile);
                     log.debug("更新Mapper XML缓存: namespace={}, file={}", namespace, virtualFile.getPath());
                 }

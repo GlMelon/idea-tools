@@ -1,6 +1,6 @@
 package io.github.easy.tools.action.mybatis;
 
-import cn.hutool.core.util.StrUtil;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
@@ -16,6 +16,7 @@ import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiParameter;
 import com.intellij.psi.xml.XmlFile;
 import com.intellij.psi.xml.XmlTag;
+import io.github.easy.tools.action.conversion.PropertyNameConverter;
 import io.github.easy.tools.entity.doc.ParameterInfo;
 import io.github.easy.tools.service.doc.velocity.VelocityTemplateRenderer;
 import io.github.easy.tools.service.mybatis.MapperXmlCacheService;
@@ -232,12 +233,12 @@ public abstract class AbstractMyBatisAction extends AnAction {
 
             // 获取@Param注解的值
             String annotationValue = MyBatisUtils.getParamAnnotationValue(parameter);
-            if (StrUtil.isNotBlank(annotationValue)) {
+            if (StringUtil.isNotEmpty(annotationValue)) {
                 paramName = annotationValue;
             }
 
             // 转换为下划线命名(假设数据库列名为下划线格式)
-            String columnName = StrUtil.toUnderlineCase(paramName);
+            String columnName = PropertyNameConverter.toLowerUnderline(paramName);
 
             ParameterInfo info = ParameterInfo.builder()
                     .originalName(paramName)
@@ -347,7 +348,7 @@ public abstract class AbstractMyBatisAction extends AnAction {
         String tableName = className.replaceAll("(Mapper|Repository|Dao)$", "");
 
         // 转换为下划线格式
-        return StrUtil.toUnderlineCase(tableName);
+        return PropertyNameConverter.toLowerUnderline(tableName);
     }
 
     /**

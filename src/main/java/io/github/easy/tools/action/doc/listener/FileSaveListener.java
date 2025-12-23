@@ -61,11 +61,6 @@ public class FileSaveListener implements FileDocumentManagerListener {
      */
     @Override
     public void beforeDocumentSaving(@NotNull Document document) {
-        // 检查是否启用保存监听器
-        if (!DocConfigService.getInstance().saveListener) {
-            return;
-        }
-
         // 获取虚拟文件
         VirtualFile virtualFile = FileDocumentManager.getInstance().getFile(document);
         if (virtualFile == null) {
@@ -84,6 +79,11 @@ public class FileSaveListener implements FileDocumentManagerListener {
         }
         
         Project project = projects[0]; // 使用第一个打开的项目
+
+        // 检查是否启用保存监听器（根据项目配置）
+        if (!DocConfigService.getInstance(project).saveListener) {
+            return;
+        }
 
         PsiFile psiFile = PsiManager.getInstance(project).findFile(virtualFile);
         if (psiFile == null) {

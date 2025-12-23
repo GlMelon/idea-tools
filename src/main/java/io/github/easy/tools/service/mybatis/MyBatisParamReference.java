@@ -1,6 +1,6 @@
 package io.github.easy.tools.service.mybatis;
 
-import cn.hutool.core.util.StrUtil;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.JavaPsiFacade;
@@ -197,7 +197,7 @@ public class MyBatisParamReference extends PsiReferenceBase<PsiElement> {
         XmlTag sqlTag = MyBatisUtils.findSqlTag(MyBatisUtils.findParentTag(this.getElement()));
         if (sqlTag != null) {
             String type = sqlTag.getAttributeValue("parameterType");
-            if (StrUtil.isNotBlank(type)) {
+            if (StringUtil.isNotEmpty(type)) {
                 Project project = this.getElement().getProject();
                 return JavaPsiFacade.getInstance(project)
                         .findClass(type, this.getElement().getResolveScope());
@@ -228,7 +228,7 @@ public class MyBatisParamReference extends PsiReferenceBase<PsiElement> {
 
         for (PsiParameter parameter : method.getParameterList().getParameters()) {
             String paramAnnotationValue = this.getParamAnnotationValue(parameter);
-            if (StrUtil.equals(paramAnnotationValue, paramName)) {
+            if (StringUtil.equals(paramAnnotationValue, paramName)) {
                 return parameter;
             }
             if (parameter.getName().equals(paramName)) {
@@ -254,7 +254,7 @@ public class MyBatisParamReference extends PsiReferenceBase<PsiElement> {
         if (parameters.length == 1) {
             PsiParameter param = parameters[0];
             // 且必须没有 @Param 注解
-            if (StrUtil.isBlank(this.getParamAnnotationValue(param))) {
+            if (StringUtil.isEmpty(this.getParamAnnotationValue(param))) {
                 return PsiTypesUtil.getPsiClass(param.getType());
             }
         }
@@ -300,7 +300,7 @@ public class MyBatisParamReference extends PsiReferenceBase<PsiElement> {
         String id = sqlTag.getAttributeValue("id");
         String namespace = MyBatisUtils.getMapperNamespace(sqlTag);
 
-        if (StrUtil.hasBlank(id, namespace)) {
+        if (StringUtil.isEmpty(id) || StringUtil.isEmpty(namespace)) {
             return null;
         }
 
@@ -361,7 +361,7 @@ public class MyBatisParamReference extends PsiReferenceBase<PsiElement> {
      */
     private @Nullable PsiElement resolveIncludeRefId() {
         String refId = this.fullExpression;
-        if (StrUtil.isNotBlank(refId)) {
+        if (StringUtil.isNotEmpty(refId)) {
             return MyBatisUtils.findSqlTagById(refId, this.getElement());
         }
         return null;

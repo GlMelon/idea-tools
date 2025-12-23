@@ -1,6 +1,6 @@
 package io.github.easy.tools.service.mybatis.completion.strategy;
 
-import cn.hutool.core.util.StrUtil;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.codeInsight.completion.CompletionResultSet;
 import com.intellij.codeInsight.completion.InsertHandler;
 import com.intellij.codeInsight.completion.InsertionContext;
@@ -13,6 +13,7 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiParameter;
+import io.github.easy.tools.action.conversion.PropertyNameConverter;
 import io.github.easy.tools.service.mybatis.completion.CompletionContext;
 import io.github.easy.tools.service.mybatis.completion.CompletionStrategy;
 import io.github.easy.tools.service.mybatis.expression.MyBatisExpressionParser;
@@ -208,7 +209,7 @@ public class TagTemplateCompletionStrategy implements CompletionStrategy {
      * @since 1.0.0
      */
     private boolean isTagKeywordPrefix(@NotNull String input) {
-        if (StrUtil.isBlank(input)) {
+        if (StringUtil.isEmpty(input)) {
             return true; // 空字符串匹配所有标签
         }
 
@@ -240,7 +241,7 @@ public class TagTemplateCompletionStrategy implements CompletionStrategy {
                 MyBatisExpressionParser.parseForCompletion(expression);
 
         String rootParam = parseResult.getRootParam();
-        if (StrUtil.isBlank(rootParam)) {
+        if (StringUtil.isEmpty(rootParam)) {
             return false;
         }
 
@@ -248,7 +249,7 @@ public class TagTemplateCompletionStrategy implements CompletionStrategy {
         for (PsiParameter param : method.getParameterList().getParameters()) {
             String paramName = param.getName();
             String annotationValue = MyBatisUtils.getParamAnnotationValue(param);
-            if (StrUtil.isNotBlank(annotationValue)) {
+            if (StringUtil.isNotEmpty(annotationValue)) {
                 paramName = annotationValue;
             }
             if (rootParam.equals(paramName)) {
@@ -269,7 +270,7 @@ public class TagTemplateCompletionStrategy implements CompletionStrategy {
     private String extractFieldName(@NotNull String[] parts) {
         if (parts.length >= 2) {
             // 倒数第二个部分通常是字段名
-            return StrUtil.toUnderlineCase(parts[parts.length - 2]);
+            return PropertyNameConverter.toLowerUnderline(parts[parts.length - 2]);
         }
         return "column_name";
     }

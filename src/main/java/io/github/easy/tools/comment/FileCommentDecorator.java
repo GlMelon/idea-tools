@@ -1,6 +1,6 @@
 package io.github.easy.tools.comment;
 
-import cn.hutool.core.util.StrUtil;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ide.projectView.PresentationData;
 import com.intellij.ide.projectView.ProjectViewNode;
 import com.intellij.ide.projectView.ProjectViewNodeDecorator;
@@ -188,13 +188,13 @@ public class FileCommentDecorator implements ProjectViewNodeDecorator {
         StringBuilder description = new StringBuilder();
         for (PsiElement element : descriptionElements) {
             String text = element.getText().trim();
-            if (StrUtil.isNotBlank(text)) {
+            if (StringUtil.isNotEmpty(text)) {
                 description.append(text).append(" ");
             }
         }
 
         String result = description.toString().trim();
-        if (StrUtil.isBlank(result)) {
+        if (StringUtil.isEmpty(result)) {
             return Optional.empty();
         }
 
@@ -213,14 +213,14 @@ public class FileCommentDecorator implements ProjectViewNodeDecorator {
      * @param commentText 注释文本
      */
     private void appendComment(@NotNull PresentationData data, @NotNull String commentText) {
-        if (StrUtil.isBlank(commentText)) {
+        if (StringUtil.isEmpty(commentText)) {
             return;
         }
 
         // 在文件名后面添加注释（不添加//前缀）
         String locationString = data.getLocationString();
         String newLocation;
-        if (StrUtil.isNotBlank(locationString)) {
+        if (StringUtil.isNotEmpty(locationString)) {
             newLocation = locationString + " " + commentText;
         } else {
             newLocation = commentText;

@@ -1,12 +1,12 @@
 package io.github.easy.tools.ui.config;
 
-import cn.hutool.core.util.StrUtil;
 import com.intellij.openapi.fileChooser.FileChooser;
 import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.JBTextField;
@@ -17,6 +17,7 @@ import io.github.easy.tools.constants.PromptConstants;
 import io.github.easy.tools.service.database.DatabaseMetadataService;
 import org.jetbrains.annotations.Nullable;
 
+import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
@@ -25,7 +26,6 @@ import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
-import javax.swing.DefaultListModel;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
@@ -43,48 +43,91 @@ import java.awt.FlowLayout;
  * @author haijun
  * @version 1.0.0
  * @since 1.0.0
+ * @date 2025-12-23 09:28:54
  */
 public class CodeGenConfig implements Configurable {
 
-    /** 主面板 */
+    /**
+     * main panel
+     */
     private JPanel mainPanel;
-    /** 模板表格 */
+    /**
+     * template table
+     */
     private JBTable templateTable;
-    /** 表格模型 */
+    /**
+     * table model
+     */
     private DefaultTableModel tableModel;
-    /** 模板名称输入框 */
+    /**
+     * template name field
+     */
     private JBTextField templateNameField;
-    /** 参考文件路径显示框 */
+    /**
+     * reference file field
+     */
     private JBTextField referenceFileField;
-    /** 生成文件名规则输入框 */
+    /**
+     * file name pattern field
+     */
     private JBTextField fileNamePatternField;
-    /** 目标目录路径显示框 */
+    /**
+     * target dir field
+     */
     private JBTextField targetDirField;
-    /** 自定义提示词输入框 */
+    /**
+     * custom prompt area
+     */
     private JTextArea customPromptArea;
 
-    /** 大模型类型下拉框 */
+    /**
+     * model type combo
+     */
     private JComboBox<String> modelTypeCombo;
 
-    /** 数据源表格 */
+    /**
+     * data source table
+     */
     private JBTable dataSourceTable;
-    /** 数据源表格模型 */
+    /**
+     * data source table model
+     */
     private DefaultTableModel dataSourceTableModel;
-    /** 表列表 */
+    /**
+     * table list
+     */
     private JList<String> tableList;
-    /** DDL 预览文本区 */
+    /**
+     * ddl preview area
+     */
     private JTextArea ddlPreviewArea;
-    /** 数据源下拉框 */
+    /**
+     * data source combo
+     */
     private JComboBox<String> dataSourceCombo;
 
-    /** 配置是否被修改标记 */
+    /**
+     * is modified
+     */
     private boolean isModified = false;
 
+    /**
+     * Get Display Name
+     *
+     * @return string
+     * @since 1.0.0
+     */
     @Override
     public String getDisplayName() {
         return "AI 代码生成配置";
     }
 
+    /**
+     * Create Component
+     *
+     * @return component
+     * @since 1.0.0
+     */
     @Override
     public @Nullable JComponent createComponent() {
         this.mainPanel = new JPanel(new BorderLayout());
@@ -105,11 +148,22 @@ public class CodeGenConfig implements Configurable {
         return this.mainPanel;
     }
 
+    /**
+     * Is Modified
+     *
+     * @return boolean
+     * @since 1.0.0
+     */
     @Override
     public boolean isModified() {
         return this.isModified;
     }
 
+    /**
+     * Apply
+     *
+     * @since 1.0.0
+     */
     @Override
     public void apply() {
         CodeGenConfigState state = CodeGenConfigState.getInstance();
@@ -125,7 +179,7 @@ public class CodeGenConfig implements Configurable {
 
             // 判断提示词是否为自定义：只有当用户修改了默认提示词时才保存为自定义
             String currentPrompt = this.customPromptArea.getText();
-            if (StrUtil.isNotBlank(currentPrompt) && !currentPrompt.equals(PromptConstants.CODE_GENERATION_DEFAULT_PROMPT)) {
+            if (StringUtil.isNotEmpty(currentPrompt) && !currentPrompt.equals(PromptConstants.CODE_GENERATION_DEFAULT_PROMPT)) {
                 currentTemplate.setUseCustomPrompt(true);
                 currentTemplate.setCustomPrompt(currentPrompt);
             } else {
@@ -146,12 +200,22 @@ public class CodeGenConfig implements Configurable {
         this.isModified = false;
     }
 
+    /**
+     * Reset
+     *
+     * @since 1.0.0
+     */
     @Override
     public void reset() {
         this.loadConfigData();
         this.isModified = false;
     }
 
+    /**
+     * Dispose UI Resources
+     *
+     * @since 1.0.0
+     */
     @Override
     public void disposeUIResources() {
         this.mainPanel = null;
@@ -164,25 +228,32 @@ public class CodeGenConfig implements Configurable {
      * </p>
      *
      * @return 模板配置面板
+     * @since 1.0.0
      */
     private JPanel createTemplateConfigPanel() {
         JPanel panel = new JPanel(new BorderLayout());
-        
+
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
         splitPane.setBorder(JBUI.Borders.empty());
-        
+
         JPanel leftPanel = this.createTemplateListPanel();
         JPanel rightPanel = this.createTemplateInfoPanel();
-        
+
         splitPane.setLeftComponent(leftPanel);
         splitPane.setRightComponent(rightPanel);
         splitPane.setDividerLocation(300);
-        
+
         panel.add(splitPane, BorderLayout.CENTER);
-        
+
         return panel;
     }
 
+    /**
+     * Create Template List Panel
+     *
+     * @return panel
+     * @since 1.0.0
+     */
     private JPanel createTemplateListPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(JBUI.Borders.customLine(JBUI.CurrentTheme.CustomFrameDecorations.separatorForeground(), 0, 0, 0, 1));
@@ -224,6 +295,7 @@ public class CodeGenConfig implements Configurable {
      * </p>
      *
      * @return 数据源配置面板
+     * @since 1.0.0
      */
     private JPanel createDataSourceConfigPanel() {
         return this.createDataSourcePanel();
@@ -236,6 +308,7 @@ public class CodeGenConfig implements Configurable {
      * </p>
      *
      * @return 代码生成面板
+     * @since 1.0.0
      */
     private JPanel createCodeGenerationPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
@@ -246,31 +319,37 @@ public class CodeGenConfig implements Configurable {
 
         // 左侧：模板选择区域
         JPanel templateSelectionPanel = this.createTemplateSelectionPanel();
-        
+
         // 中间：数据源和表选择区域
         JPanel tableSelectionPanel = this.createTableSelectionPanelForGeneration();
-        
+
         // 使用水平分割面板
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
         splitPane.setLeftComponent(templateSelectionPanel);
         splitPane.setRightComponent(tableSelectionPanel);
         splitPane.setDividerLocation(400);
-        
+
         contentPanel.add(splitPane, BorderLayout.CENTER);
-        
+
         // 底部：生成按钮区域
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
         JButton generateButton = new JButton("开始生成代码");
         generateButton.setPreferredSize(new Dimension(150, 35));
         generateButton.addActionListener(e -> this.generateCode());
         buttonPanel.add(generateButton);
-        
+
         panel.add(contentPanel, BorderLayout.CENTER);
         panel.add(buttonPanel, BorderLayout.SOUTH);
 
         return panel;
     }
 
+    /**
+     * Create Template Info Panel
+     *
+     * @return panel
+     * @since 1.0.0
+     */
     private JPanel createTemplateInfoPanel() {
 
         JPanel formPanel = new JPanel();
@@ -335,11 +414,13 @@ public class CodeGenConfig implements Configurable {
      * 直接使用LLMConstants中定义的所有模型厂商，而不是从 modelConfigs 动态读取
      * 这样可以确保启动时就能看到所有可用的模型选项
      * </p>
+     *
+     * @since 1.0.0
      */
     private void loadModelTypes() {
         this.modelTypeCombo.removeAllItems();
         this.modelTypeCombo.addItem("使用默认模型");
-            
+
         // 直接使用固定的模型厂商列表，与LLMConfig中的一致
         this.modelTypeCombo.addItem(LLMConstants.ModelDisplayName.OPENAI);
         this.modelTypeCombo.addItem(LLMConstants.ModelDisplayName.OLLAMA);
@@ -357,6 +438,7 @@ public class CodeGenConfig implements Configurable {
      *
      * @param modelType 模型类型
      * @return 显示名称
+     * @since 1.0.0
      */
     private String getModelDisplayName(String modelType) {
         return switch (modelType) {
@@ -378,6 +460,7 @@ public class CodeGenConfig implements Configurable {
      *
      * @param displayName 显示名称
      * @return 模型类型
+     * @since 1.0.0
      */
     private String getModelTypeFromDisplay(String displayName) {
         if ("使用默认模型".equals(displayName)) {
@@ -397,6 +480,11 @@ public class CodeGenConfig implements Configurable {
         };
     }
 
+    /**
+     * Load Config Data
+     *
+     * @since 1.0.0
+     */
     private void loadConfigData() {
         CodeGenConfigState state = CodeGenConfigState.getInstance();
         this.tableModel.setRowCount(0);
@@ -404,7 +492,7 @@ public class CodeGenConfig implements Configurable {
         // 在加载数据时，为每个模板初始化默认提示词（如果没有自定义提示词）
         for (CodeGenConfigState.TemplateConfig template : state.templates) {
             // 如果模板没有自定义提示词，且存储的提示词为空，则设置为使用默认提示词
-            if (!template.isUseCustomPrompt() && StrUtil.isBlank(template.getCustomPrompt())) {
+            if (!template.isUseCustomPrompt() && StringUtil.isNotEmpty(template.getCustomPrompt())) {
                 template.setUseCustomPrompt(false);
                 template.setCustomPrompt("");
             }
@@ -420,6 +508,11 @@ public class CodeGenConfig implements Configurable {
         }
     }
 
+    /**
+     * Init Table Selection Listener
+     *
+     * @since 1.0.0
+     */
     private void initTableSelectionListener() {
         this.templateTable.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
@@ -436,6 +529,8 @@ public class CodeGenConfig implements Configurable {
      * <p>
      * 为所有输入字段添加变更监听，当字段内容变化时设置 isModified = true
      * </p>
+     *
+     * @since 1.0.0
      */
     private void initFieldChangeListeners() {
         // 模板名称变更监听
@@ -496,41 +591,52 @@ public class CodeGenConfig implements Configurable {
         this.modelTypeCombo.addActionListener(e -> CodeGenConfig.this.isModified = true);
     }
 
+    /**
+     * Load Template Detail
+     *
+     * @param rowIndex row index
+     * @since 1.0.0
+     */
     private void loadTemplateDetail(int rowIndex) {
         CodeGenConfigState state = CodeGenConfigState.getInstance();
         if (rowIndex < 0 || rowIndex >= state.templates.size()) {
             return;
         }
-            
+
         CodeGenConfigState.TemplateConfig template = state.templates.get(rowIndex);
-            
+
         // 加载模板详情时，不触发 isModified，因为这只是加载数据而不是修改
         // 需要在设置完所有字段后再将 isModified 设为 false
         this.templateNameField.setText(template.getName());
         this.referenceFileField.setText(template.getReferenceFilePath());
         this.fileNamePatternField.setText(template.getFileNamePattern());
         this.targetDirField.setText(template.getTargetDir());
-            
+
         // 加载提示词：如果有自定义提示词则显示，否则显示默认提示词
-        if (template.isUseCustomPrompt() && StrUtil.isNotBlank(template.getCustomPrompt())) {
+        if (template.isUseCustomPrompt() && StringUtil.isNotEmpty(template.getCustomPrompt())) {
             this.customPromptArea.setText(template.getCustomPrompt());
         } else {
             this.customPromptArea.setText(PromptConstants.CODE_GENERATION_DEFAULT_PROMPT);
         }
-            
+
         // 加载大模型选择
-        if (StrUtil.isNotBlank(template.getSelectedModelType())) {
+        if (StringUtil.isNotEmpty(template.getSelectedModelType())) {
             String displayName = this.getModelDisplayName(template.getSelectedModelType());
             this.modelTypeCombo.setSelectedItem(displayName);
         } else {
             this.modelTypeCombo.setSelectedItem("使用默认模型");
         }
-            
+
         // 加载完成后，重置 isModified 为 false
         // 使用 SwingUtilities.invokeLater 确保在所有事件处理完毕后再设置
         SwingUtilities.invokeLater(() -> CodeGenConfig.this.isModified = false);
     }
 
+    /**
+     * Add Template
+     *
+     * @since 1.0.0
+     */
     private void addTemplate() {
         CodeGenConfigState state = CodeGenConfigState.getInstance();
         CodeGenConfigState.TemplateConfig template = new CodeGenConfigState.TemplateConfig();
@@ -552,6 +658,11 @@ public class CodeGenConfig implements Configurable {
         this.isModified = true;
     }
 
+    /**
+     * Delete Selected Template
+     *
+     * @since 1.0.0
+     */
     private void deleteSelectedTemplate() {
         int selectedRow = this.templateTable.getSelectedRow();
         if (selectedRow < 0) {
@@ -584,6 +695,11 @@ public class CodeGenConfig implements Configurable {
         this.isModified = true;
     }
 
+    /**
+     * Choose Reference File
+     *
+     * @since 1.0.0
+     */
     private void chooseReferenceFile() {
         Project project = this.getCurrentProject();
         if (project == null) {
@@ -597,6 +713,11 @@ public class CodeGenConfig implements Configurable {
         });
     }
 
+    /**
+     * Choose Target Dir
+     *
+     * @since 1.0.0
+     */
     private void chooseTargetDir() {
         Project project = this.getCurrentProject();
         if (project == null) {
@@ -610,6 +731,12 @@ public class CodeGenConfig implements Configurable {
         });
     }
 
+    /**
+     * Get Current Project
+     *
+     * @return project
+     * @since 1.0.0
+     */
     @Nullable
     private Project getCurrentProject() {
         Project[] projects = ProjectManager.getInstance().getOpenProjects();
@@ -623,6 +750,7 @@ public class CodeGenConfig implements Configurable {
      * 创建数据源配置面板
      *
      * @return 数据源配置面板
+     * @since 1.0.0
      */
     private JPanel createDataSourcePanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
@@ -666,6 +794,7 @@ public class CodeGenConfig implements Configurable {
      * 创建表选择与 DDL 预览面板
      *
      * @return 表选择面板
+     * @since 1.0.0
      */
     private JPanel createTableSelectionPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
@@ -723,6 +852,8 @@ public class CodeGenConfig implements Configurable {
 
     /**
      * 加载数据源列表
+     *
+     * @since 1.0.0
      */
     private void loadDataSourceList() {
         CodeGenConfigState state = CodeGenConfigState.getInstance();
@@ -735,6 +866,8 @@ public class CodeGenConfig implements Configurable {
 
     /**
      * 加载数据源下拉框
+     *
+     * @since 1.0.0
      */
     private void loadDataSourceCombo() {
         CodeGenConfigState state = CodeGenConfigState.getInstance();
@@ -747,6 +880,8 @@ public class CodeGenConfig implements Configurable {
 
     /**
      * 新增数据源
+     *
+     * @since 1.0.0
      */
     private void addDataSource() {
         DataSourceConfigDialog dialog = new DataSourceConfigDialog();
@@ -761,6 +896,8 @@ public class CodeGenConfig implements Configurable {
 
     /**
      * 编辑数据源
+     *
+     * @since 1.0.0
      */
     private void editDataSource() {
         int selectedRow = this.dataSourceTable.getSelectedRow();
@@ -785,6 +922,8 @@ public class CodeGenConfig implements Configurable {
 
     /**
      * 删除数据源
+     *
+     * @since 1.0.0
      */
     private void deleteDataSource() {
         int selectedRow = this.dataSourceTable.getSelectedRow();
@@ -809,10 +948,12 @@ public class CodeGenConfig implements Configurable {
 
     /**
      * 加载选中数据源的表列表
+     *
+     * @since 1.0.0
      */
     private void loadTablesForDataSource() {
         String selectedDsName = (String) this.dataSourceCombo.getSelectedItem();
-        if (StrUtil.isBlank(selectedDsName)) {
+        if (StringUtil.isEmpty(selectedDsName)) {
             return;
         }
 
@@ -837,16 +978,18 @@ public class CodeGenConfig implements Configurable {
 
     /**
      * 查看选中表的 DDL
+     *
+     * @since 1.0.0
      */
     private void viewTableDDL() {
         String selectedTable = this.tableList.getSelectedValue();
-        if (StrUtil.isBlank(selectedTable)) {
+        if (StringUtil.isEmpty(selectedTable)) {
             Messages.showWarningDialog("请先选择一个表", "提示");
             return;
         }
 
         String selectedDsName = (String) this.dataSourceCombo.getSelectedItem();
-        if (StrUtil.isBlank(selectedDsName)) {
+        if (StringUtil.isEmpty(selectedDsName)) {
             return;
         }
 
@@ -872,6 +1015,7 @@ public class CodeGenConfig implements Configurable {
      * </p>
      *
      * @return 模板选择面板
+     * @since 1.0.0
      */
     private JPanel createTemplateSelectionPanel() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
@@ -885,7 +1029,7 @@ public class CodeGenConfig implements Configurable {
         DefaultListModel<String> listModel = new DefaultListModel<>();
         JList<String> templateList = new JList<>(listModel);
         templateList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-        
+
         // 加载所有模板
         CodeGenConfigState state = CodeGenConfigState.getInstance();
         for (CodeGenConfigState.TemplateConfig template : state.templates) {
@@ -905,6 +1049,7 @@ public class CodeGenConfig implements Configurable {
      * </p>
      *
      * @return 表选择面板
+     * @since 1.0.0
      */
     private JPanel createTableSelectionPanelForGeneration() {
         JPanel panel = new JPanel(new BorderLayout(5, 5));
@@ -921,7 +1066,7 @@ public class CodeGenConfig implements Configurable {
         JButton refreshButton = new JButton("刷新表列表");
         refreshButton.addActionListener(e -> {
             String selectedDs = (String) genDataSourceCombo.getSelectedItem();
-            if (StrUtil.isNotBlank(selectedDs)) {
+            if (StringUtil.isNotEmpty(selectedDs)) {
                 this.loadTablesForGeneration(genDataSourceCombo, genDataSourceCombo);
             }
         });
@@ -953,7 +1098,7 @@ public class CodeGenConfig implements Configurable {
         // 数据源变更监听
         genDataSourceCombo.addActionListener(e -> {
             String selectedDs = (String) genDataSourceCombo.getSelectedItem();
-            if (StrUtil.isNotBlank(selectedDs)) {
+            if (StringUtil.isNotEmpty(selectedDs)) {
                 tableListModel.clear();
                 CodeGenConfigState.DataSourceConfig ds = state.dataSources.stream()
                         .filter(d -> d.getName().equals(selectedDs))
@@ -982,6 +1127,7 @@ public class CodeGenConfig implements Configurable {
      *
      * @param dataSourceCombo 数据源下拉框
      * @param tableListCombo  表列表下拉框
+     * @since 1.0.0
      */
     private void loadTablesForGeneration(JComboBox<String> dataSourceCombo, JComboBox<String> tableListCombo) {
         // 这里可以添加刷新逻辑，如果需要
@@ -992,6 +1138,8 @@ public class CodeGenConfig implements Configurable {
      * <p>
      * 遍历选中的每个模板和每张表，生成对应的代码文件
      * </p>
+     *
+     * @since 1.0.0
      */
     private void generateCode() {
         Messages.showInfoMessage("代码生成功能正在开发中...", "提示");

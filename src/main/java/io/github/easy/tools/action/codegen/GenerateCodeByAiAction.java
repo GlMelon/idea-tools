@@ -1,7 +1,6 @@
 package io.github.easy.tools.action.codegen;
 
-import cn.hutool.core.collection.CollUtil;
-import cn.hutool.core.util.StrUtil;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.progress.ProgressIndicator;
@@ -52,12 +51,12 @@ public class GenerateCodeByAiAction extends AnAction {
 
         CodeGenConfigState state = CodeGenConfigState.getInstance();
         
-        if (CollUtil.isEmpty(state.templates)) {
+        if (state.templates == null || state.templates.isEmpty()) {
             Messages.showWarningDialog(project, "请先在设置中配置代码生成模板", "提示");
             return;
         }
 
-        if (CollUtil.isEmpty(state.dataSources)) {
+        if (state.dataSources == null || state.dataSources.isEmpty()) {
             Messages.showWarningDialog(project, "请先在设置中配置数据源", "提示");
             return;
         }
@@ -79,7 +78,7 @@ public class GenerateCodeByAiAction extends AnAction {
         CodeGenConfigState.DataSourceConfig dataSource = dialog.getSelectedDataSource();
         List<String> tableNames = dialog.getSelectedTableNames();
 
-        if (template == null || dataSource == null || CollUtil.isEmpty(tableNames)) {
+        if (template == null || dataSource == null || tableNames == null || tableNames.isEmpty()) {
             Messages.showWarningDialog(project, "请选择模板、数据源和表", "提示");
             return;
         }
@@ -226,7 +225,7 @@ public class GenerateCodeByAiAction extends AnAction {
          */
         public CodeGenConfigState.TemplateConfig getSelectedTemplate() {
             String selectedName = (String) this.templateCombo.getSelectedItem();
-            if (StrUtil.isBlank(selectedName)) {
+            if (StringUtil.isEmpty(selectedName)) {
                 return null;
             }
             return this.state.templates.stream()
@@ -242,7 +241,7 @@ public class GenerateCodeByAiAction extends AnAction {
          */
         public CodeGenConfigState.DataSourceConfig getSelectedDataSource() {
             String selectedName = (String) this.dataSourceCombo.getSelectedItem();
-            if (StrUtil.isBlank(selectedName)) {
+            if (StringUtil.isEmpty(selectedName)) {
                 return null;
             }
             return this.state.dataSources.stream()

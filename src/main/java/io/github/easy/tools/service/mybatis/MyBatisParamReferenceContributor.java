@@ -1,6 +1,6 @@
 package io.github.easy.tools.service.mybatis;
 
-import cn.hutool.core.util.StrUtil;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.patterns.PlatformPatterns;
 import com.intellij.psi.PsiElement;
@@ -163,7 +163,7 @@ public class MyBatisParamReferenceContributor extends PsiReferenceContributor {
         String attrName = attribute.getName();
         String valueText = attributeValue.getValue();
 
-        if (StrUtil.isEmpty(valueText)) {
+        if (StringUtil.isEmpty(valueText)) {
             return;
         }
 
@@ -216,7 +216,7 @@ public class MyBatisParamReferenceContributor extends PsiReferenceContributor {
         }
 
         String text = token.getText();
-        if (StrUtil.isEmpty(text)) {
+        if (StringUtil.isEmpty(text)) {
             return;
         }
 
@@ -265,7 +265,7 @@ public class MyBatisParamReferenceContributor extends PsiReferenceContributor {
         while (matcher.find()) {
             // group(1) 是花括号里面的内容，例如 query.name
             String content = matcher.group(1);
-            if (StrUtil.isBlank(content)) {
+            if (StringUtil.isEmpty(content)) {
                 continue;
             }
 

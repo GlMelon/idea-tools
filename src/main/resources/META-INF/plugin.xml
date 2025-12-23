@@ -136,15 +136,17 @@
                           id="io.github.easy.tools.ui.config.EasyConfig.02.LLMConfig"
                           displayName="大模型配置"
                           groupWeight="30"/>
-            <configurable instance="io.github.easy.tools.ui.config.DocConfig"
-                          id="io.github.easy.tools.ui.config.EasyConfig.03.DocConfig"
-                          displayName="Java注释配置"
-                          groupWeight="20"/>
             <configurable instance="io.github.easy.tools.ui.config.CodeGenConfig"
                           id="io.github.easy.tools.ui.config.EasyConfig.04.CodeGenConfig"
                           displayName="AI代码生成"
                           groupWeight="10"/>
         </applicationConfigurable>
+        <!-- Java注释配置改为项目级别配置 -->
+        <projectConfigurable parentId="io.github.easy.tools.ui.config.EasyConfig"
+                             instance="io.github.easy.tools.ui.config.DocConfig"
+                             id="io.github.easy.tools.ui.config.EasyConfig.03.DocConfig"
+                             displayName="Java注释配置"
+                             groupWeight="20"/>
         <applicationService serviceImplementation="io.github.easy.tools.action.doc.listener.FileSaveListenerManager"/>
         <notificationGroup id="Easy Docs Notification Group"
                            displayType="BALLOON"

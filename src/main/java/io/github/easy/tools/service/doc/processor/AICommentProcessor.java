@@ -1,6 +1,6 @@
 package io.github.easy.tools.service.doc.processor;
 
-import cn.hutool.core.util.StrUtil;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.JavaPsiFacade;
@@ -50,18 +50,18 @@ public class AICommentProcessor {
      * @since 1.0.0
      */
     public String getPromptByType(PsiElement element) {
-        DocConfigService config = DocConfigService.getInstance();
+        DocConfigService config = DocConfigService.getInstance(element.getProject());
 
         if (element instanceof PsiClass) {
-            return StrUtil.isNotBlank(config.classPrompt)
+            return StringUtil.isNotEmpty(config.classPrompt)
                     ? config.classPrompt
                     : PromptConstants.DEFAULT_CLASS_PROMPT;
         } else if (element instanceof PsiMethod) {
-            return StrUtil.isNotBlank(config.methodPrompt)
+            return StringUtil.isNotEmpty(config.methodPrompt)
                     ? config.methodPrompt
                     : PromptConstants.DEFAULT_METHOD_PROMPT;
         } else if (element instanceof PsiField) {
-            return StrUtil.isNotBlank(config.fieldPrompt)
+            return StringUtil.isNotEmpty(config.fieldPrompt)
                     ? config.fieldPrompt
                     : PromptConstants.DEFAULT_FIELD_PROMPT;
         }
@@ -123,7 +123,7 @@ public class AICommentProcessor {
      * @since 1.0.0
      */
     public String extractCommentFromResponse(String responseContent) {
-        if (StrUtil.isBlank(responseContent)) {
+        if (StringUtil.isEmpty(responseContent)) {
             return "";
         }
 
@@ -140,7 +140,7 @@ public class AICommentProcessor {
 
         // 提取JavaDoc注释
         String javaDocComment = this.extractJavaDocComment(responseContent);
-        if (StrUtil.isNotBlank(javaDocComment)) {
+        if (StringUtil.isNotEmpty(javaDocComment)) {
             return javaDocComment;
         }
 
@@ -290,7 +290,7 @@ public class AICommentProcessor {
     }
 
     private String sanitizeGenerics(String commentText) {
-        if (StrUtil.isBlank(commentText)) {
+        if (StringUtil.isEmpty(commentText)) {
             return commentText;
         }
         String[] lines = commentText.split("\n", -1);

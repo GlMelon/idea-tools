@@ -1,11 +1,10 @@
 package io.github.easy.tools.service.api;
 
-import cn.hutool.core.util.ReUtil;
-import cn.hutool.core.util.StrUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.text.StringUtil;
 import io.github.easy.tools.entity.api.ApiInfo;
 import io.github.easy.tools.ui.config.ApiTestConfigState;
 import io.github.easy.tools.utils.NotificationUtil;
@@ -19,16 +18,29 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * <p> API 测试服务 </p>
  * <p>
  * 负责执行API测试请求，自动合并公共请求头，并在需要时执行前置登录请求以缓存Token。
  * </p>
+ *
+ * @author haijun
+ * @date 2025-12-23 09:37:30
+ * @version 1.0.0
+ * @since 1.0.0
  */
 public class ApiTestService {
 
+    /**
+     * object mapper
+     */
     private final ObjectMapper objectMapper = new ObjectMapper();
+    /**
+     * http client
+     */
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(30))
             .build();
@@ -41,23 +53,24 @@ public class ApiTestService {
      * @param interfaceHeaders 接口级请求头列表
      * @param bodyJson 请求体（JSON，可为空）
      * @return 包含statusCode、headers、body的Map
+     * @since 1.0.0
      */
-    public Map<String, Object> executeWithHeaders(Project project, ApiInfo apiInfo, 
-                                                   List<ApiTestConfigState.HeaderItem> interfaceHeaders, 
+    public Map<String, Object> executeWithHeaders(Project project, ApiInfo apiInfo,
+                                                   List<ApiTestConfigState.HeaderItem> interfaceHeaders,
                                                    String bodyJson) {
         Map<String, Object> result = new HashMap<>();
         try {
             ApiTestConfigState cfg = ApiTestConfigState.getInstance(project);
             Map<String, String> headers = new HashMap<>();
-            
+
             // 1. 解析全局请求头（支持动态值）
             Map<String, String> globalHeaders = this.resolveHeaders(cfg.commonHeaders, cfg.baseUrl);
             headers.putAll(globalHeaders);
-            
+
             // 2. 解析接口级请求头（优先级更高，会覆盖全局）
             Map<String, String> localHeaders = this.resolveHeaders(interfaceHeaders, cfg.baseUrl);
             headers.putAll(localHeaders);
-            
+
             // 3. 前置登录请求
             TokenCacheService tokenCache = ApplicationManager.getApplication().getService(TokenCacheService.class);
             String token = tokenCache.getValidToken();
@@ -70,11 +83,11 @@ public class ApiTestService {
                 String value = cfg.preRequest.isUseBearer() ? "Bearer " + token : token;
                 headers.put(headerName, value);
             }
-            
+
             String url = this.buildAbsoluteUrl(cfg.baseUrl, apiInfo.getUrl());
             HttpRequest request = this.buildRequest(url, apiInfo.getMethod(), headers, bodyJson);
             HttpResponse<String> response = this.httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            
+
             result.put("statusCode", response.statusCode());
             result.put("headers", response.headers().map());
             result.put("body", response.body());
@@ -94,6 +107,7 @@ public class ApiTestService {
      * @param headerItems 请求头配置列表
      * @param baseUrl 基础URL
      * @return 解析后的请求头Map
+     * @since 1.0.0
      */
     private Map<String, String> resolveHeaders(List<ApiTestConfigState.HeaderItem> headerItems, String baseUrl) {
         Map<String, String> headers = new HashMap<>();
@@ -101,7 +115,7 @@ public class ApiTestService {
             return headers;
         }
         for (ApiTestConfigState.HeaderItem item : headerItems) {
-            if (item == null || StrUtil.isBlank(item.getName())) {
+            if (item == null || StringUtil.isEmpty(item.getName())) {
                 continue;
             }
             String value = null;
@@ -125,26 +139,27 @@ public class ApiTestService {
      * @param item 请求头配置项
      * @param baseUrl 基础URL
      * @return 解析后的值
+     * @since 1.0.0
      */
     private String resolveDynamicValue(ApiTestConfigState.HeaderItem item, String baseUrl) {
         try {
-            if (StrUtil.isBlank(item.getSourceUrl())) {
+            if (StringUtil.isEmpty(item.getSourceUrl())) {
                 return null;
             }
             // 调用来源接口
             String url = this.buildAbsoluteUrl(baseUrl, item.getSourceUrl());
             HttpRequest request = this.buildRequest(
-                url, 
-                StrUtil.isBlank(item.getSourceMethod()) ? "GET" : item.getSourceMethod(), 
-                null, 
+                url,
+                StringUtil.defaultIfEmpty(item.getSourceMethod(), "GET"),
+                null,
                 item.getSourceBody()
             );
             HttpResponse<String> response = this.httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             String responseBody = response.body();
-            
+
             // 使用表达式提取值（支持${response.data.token}语法）
             String expression = item.getValue();
-            if (StrUtil.isBlank(expression)) {
+            if (StringUtil.isEmpty(expression)) {
                 return responseBody;
             }
             return this.extractValueByExpression(responseBody, expression);
@@ -160,13 +175,18 @@ public class ApiTestService {
      * @param responseBody 响应体JSON
      * @param expression 表达式
      * @return 提取的值
+     * @since 1.0.0
      */
     private String extractValueByExpression(String responseBody, String expression) {
         try {
             // 提取${...}中的路径
             String jsonPath = expression;
             if (expression.contains("${") && expression.contains("}")) {
-                jsonPath = ReUtil.get("\\$\\{(.+?)\\}", expression, 1);
+                Pattern pattern = Pattern.compile("\\$\\{(.+?)\\}");
+                Matcher matcher = pattern.matcher(expression);
+                if (matcher.find()) {
+                    jsonPath = matcher.group(1);
+                }
             }
             // 去掉response.前缀（如果有）
             if (jsonPath != null && jsonPath.startsWith("response.")) {
@@ -187,6 +207,7 @@ public class ApiTestService {
      * @param customHeaders 额外临时头（来自面板输入）
      * @param bodyJson 请求体（JSON，可为空）
      * @return 响应文本
+     * @since 1.0.0
      */
     public String execute(Project project, ApiInfo apiInfo, Map<String, String> customHeaders, String bodyJson) {
         try {
@@ -222,6 +243,15 @@ public class ApiTestService {
         }
     }
 
+    /**
+     * Execute Pre Request And Cache
+     *
+     * @param cfg cfg
+     * @param tokenCache token cache
+     * @return string
+     * @throws Exception
+     * @since 1.0.0
+     */
     private String executePreRequestAndCache(ApiTestConfigState cfg, TokenCacheService tokenCache) throws Exception {
         ApiTestConfigState.PreRequestConfig pre = cfg.preRequest;
         if (pre == null || pre.getUrl() == null || pre.getUrl().isEmpty()) {
@@ -240,6 +270,13 @@ public class ApiTestService {
         return token;
     }
 
+    /**
+     * Add Headers
+     *
+     * @param target target
+     * @param items items
+     * @since 1.0.0
+     */
     private void addHeaders(Map<String, String> target, List<ApiTestConfigState.HeaderItem> items) {
         if (items == null) {
             return;
@@ -254,6 +291,14 @@ public class ApiTestService {
         }
     }
 
+    /**
+     * Build Absolute Url
+     *
+     * @param baseUrl base url
+     * @param path path
+     * @return string
+     * @since 1.0.0
+     */
     private String buildAbsoluteUrl(String baseUrl, String path) {
         if (path == null) {
             return baseUrl;
@@ -266,6 +311,16 @@ public class ApiTestService {
         return b + p;
     }
 
+    /**
+     * Build Request
+     *
+     * @param url url
+     * @param method method
+     * @param headers headers
+     * @param bodyJson body json
+     * @return http request
+     * @since 1.0.0
+     */
     private HttpRequest buildRequest(String url, String method, Map<String, String> headers, String bodyJson) {
         HttpRequest.Builder builder = HttpRequest.newBuilder()
                 .uri(URI.create(url))
@@ -299,6 +354,11 @@ public class ApiTestService {
 
     /**
      * 简易 JSON 路径提取：按点分割，如 data.token
+     *
+     * @param json json
+     * @param jsonPath json path
+     * @return string
+     * @since 1.0.0
      */
     private String extractToken(String json, String jsonPath) {
         try {

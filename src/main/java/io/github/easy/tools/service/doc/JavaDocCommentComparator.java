@@ -1,6 +1,6 @@
 package io.github.easy.tools.service.doc;
 
-import cn.hutool.core.util.StrUtil;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClassType;
 import com.intellij.psi.PsiElement;
@@ -93,7 +93,7 @@ public class JavaDocCommentComparator implements DocCommentComparator {
         String userDescription = this.extractUserDescription(oldDocComment);
 
         // 如果用户没有手动描述，则直接使用新注释
-        if (StrUtil.isBlank(userDescription)) {
+        if (StringUtil.isEmpty(userDescription)) {
             return newDocComment.getText();
         }
 
@@ -137,7 +137,7 @@ public class JavaDocCommentComparator implements DocCommentComparator {
         }
 
         // 移除描述末尾的空行,避免重复添加空行
-        while (!descriptionLines.isEmpty() && StrUtil.isBlank(descriptionLines.get(descriptionLines.size() - 1))) {
+        while (!descriptionLines.isEmpty() && StringUtil.isEmpty(descriptionLines.get(descriptionLines.size() - 1))) {
             descriptionLines.remove(descriptionLines.size() - 1);
         }
 
@@ -191,7 +191,7 @@ public class JavaDocCommentComparator implements DocCommentComparator {
                 // 添加用户的描述，保留原有的多行格式
                 String[] descLines = userDescription.split("\n");
                 for (String descLine : descLines) {
-                    if (StrUtil.isBlank(descLine)) {
+                    if (StringUtil.isEmpty(descLine)) {
                         result.append(" *").append("\n");
                     } else {
                         result.append(" * ").append(descLine).append("\n");
@@ -677,7 +677,7 @@ public class JavaDocCommentComparator implements DocCommentComparator {
      * @since 1.0.0
      */
     private boolean hasTagDescription(String tagLine) {
-        if (StrUtil.isBlank(tagLine)) {
+        if (StringUtil.isEmpty(tagLine)) {
             return false;
         }
         String trimmed = tagLine.trim();
@@ -694,7 +694,7 @@ public class JavaDocCommentComparator implements DocCommentComparator {
         if (trimmed.startsWith("@param") || trimmed.startsWith("@throws") || trimmed.startsWith("@exception")) {
             // 移除标签名
             String afterTag = trimmed.replaceFirst("^@(param|throws|exception)\\s*", "");
-            if (StrUtil.isBlank(afterTag)) {
+            if (StringUtil.isEmpty(afterTag)) {
                 return false;
             }
             // 移除参数名/异常名(第一个token)
@@ -705,11 +705,11 @@ public class JavaDocCommentComparator implements DocCommentComparator {
             }
             // 检查参数名/异常名之后是否有非空描述
             String description = afterTag.substring(spaceIdx + 1).trim();
-            return StrUtil.isNotBlank(description);
+            return StringUtil.isNotEmpty(description);
         } else {
             // 对于@return、@since等其他标签,检查标签名之后是否有描述
             String afterTag = trimmed.replaceFirst("^@\\w+\\s*", "");
-            return StrUtil.isNotBlank(afterTag);
+            return StringUtil.isNotEmpty(afterTag);
         }
     }
 

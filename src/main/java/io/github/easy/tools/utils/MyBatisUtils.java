@@ -1,6 +1,6 @@
 package io.github.easy.tools.utils;
 
-import cn.hutool.core.util.StrUtil;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiAnnotation;
@@ -221,7 +221,7 @@ public final class MyBatisUtils {
         XmlTag sqlTag = findSqlTag(findParentTag(context));
         if (sqlTag != null) {
             String type = sqlTag.getAttributeValue("parameterType");
-            if (StrUtil.isNotBlank(type)) {
+            if (StringUtil.isNotEmpty(type)) {
                 Project project = context.getProject();
                 return JavaPsiFacade.getInstance(project)
                         .findClass(type, context.getResolveScope());
@@ -265,7 +265,7 @@ public final class MyBatisUtils {
 
         for (PsiParameter parameter : method.getParameterList().getParameters()) {
             String paramAnnotationValue = getParamAnnotationValue(parameter);
-            if (StrUtil.equals(paramAnnotationValue, paramName)) {
+            if (StringUtil.equals(paramAnnotationValue, paramName)) {
                 return parameter;
             }
             if (parameter.getName().equals(paramName)) {
@@ -296,7 +296,7 @@ public final class MyBatisUtils {
         String id = sqlTag.getAttributeValue("id");
         String namespace = getMapperNamespace(sqlTag);
 
-        if (StrUtil.hasBlank(id, namespace)) {
+        if (StringUtil.isEmpty(id) || StringUtil.isEmpty(namespace)) {
             return null;
         }
 

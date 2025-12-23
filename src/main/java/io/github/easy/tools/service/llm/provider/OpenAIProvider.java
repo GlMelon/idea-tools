@@ -1,9 +1,9 @@
 package io.github.easy.tools.service.llm.provider;
 
-import cn.hutool.http.HttpRequest;
-import cn.hutool.http.HttpResponse;
-import cn.hutool.json.JSON;
-import cn.hutool.json.JSONUtil;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonArray;
+import com.intellij.util.io.HttpRequests;
+import java.io.IOException;
 import io.github.easy.tools.constants.LLMConstants;
 import io.github.easy.tools.service.llm.AIRequest;
 import io.github.easy.tools.ui.config.DocConfigService;
@@ -58,19 +58,15 @@ public class OpenAIProvider implements AIProvider {
             String requestBody = this.buildRequestBody(request);
             
             // 发送HTTP请求
-            HttpResponse response = HttpRequest.post(config.baseUrl + LLMConstants.ApiEndpoint.OPENAI_CHAT)
-                    .header("Content-Type", "application/json")
-                    .header("Authorization", "Bearer " + config.apiKey)
-                    .body(requestBody)
-                    .timeout(config.timeout)
-                    .execute();
-            
-            if (response.getStatus() == 200) {
-                return response.body();
-            } else {
-                throw new RuntimeException("AI服务调用失败: " + response.body());
-            }
-        } catch (Exception e) {
+            return HttpRequests.post(config.baseUrl + LLMConstants.ApiEndpoint.OPENAI_CHAT, "application/json")
+                    .tuner(connection -> {
+                        connection.setRequestProperty("Authorization", "Bearer " + config.apiKey);
+                    })
+                    .connect(httpRequest -> {
+                        httpRequest.write(requestBody);
+                        return httpRequest.readString();
+                    });
+        } catch (IOException e) {
             throw new RuntimeException("调用OpenAI服务失败: " + e.getMessage(), e);
         }
     }
@@ -98,22 +94,27 @@ public class OpenAIProvider implements AIProvider {
      */
     private String buildRequestBody(AIRequest request) {
         // 构建消息数组
-        JSON messages = JSONUtil.createArray()
-                .put(JSONUtil.createObj()
-                        .set("role", "system")
-                        .set("content", LLMConstants.SystemPrompt.JAVA_DOC_SYSTEM))
-                .put(JSONUtil.createObj()
-                        .set("role", "user")
-                        .set("content", request.getPrompt()));
+        JsonArray messages = new JsonArray();
+        
+        JsonObject systemMsg = new JsonObject();
+        systemMsg.addProperty("role", "system");
+        systemMsg.addProperty("content", LLMConstants.SystemPrompt.JAVA_DOC_SYSTEM);
+        messages.add(systemMsg);
+        
+        JsonObject userMsg = new JsonObject();
+        userMsg.addProperty("role", "user");
+        userMsg.addProperty("content", request.getPrompt());
+        messages.add(userMsg);
         
         // 构建请求体
-        return JSONUtil.createObj()
-                .set("model", request.getModel())
-                .set("messages", messages)
-                .set("temperature", request.getTemperature())
-                .set("top_p", request.getTopP())
-                .set("max_tokens", request.getMaxTokens())
-                .set("stream", request.isStream())
-                .toString();
+        JsonObject json = new JsonObject();
+        json.addProperty("model", request.getModel());
+        json.add("messages", messages);
+        json.addProperty("temperature", request.getTemperature());
+        json.addProperty("top_p", request.getTopP());
+        json.addProperty("max_tokens", request.getMaxTokens());
+        json.addProperty("stream", request.isStream());
+        
+        return json.toString();
     }
 }

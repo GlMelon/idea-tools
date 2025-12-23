@@ -1,9 +1,8 @@
 package io.github.easy.tools.service.mybatis;
 
-import cn.hutool.core.collection.CollUtil;
-import cn.hutool.core.util.StrUtil;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
@@ -12,6 +11,7 @@ import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.xml.XmlFile;
 import com.intellij.psi.xml.XmlTag;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections.MapUtils;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -90,7 +90,7 @@ public class MapperXmlCacheService {
 
                     // 提取namespace并缓存
                     String namespace = this.extractNamespace(xmlFile);
-                    if (StrUtil.isNotBlank(namespace)) {
+                    if (StringUtil.isNotEmpty(namespace)) {
                         this.namespaceToXmlFileCache.put(namespace, xmlFile);
                         this.pathToNamespaceCache.put(virtualFile.getPath(), namespace);
                         log.debug("缓存Mapper XML: namespace={}, file={}", namespace, virtualFile.getPath());
@@ -156,7 +156,7 @@ public class MapperXmlCacheService {
      * @since 1.0.0
      */
     public void addToCache(String namespace, XmlFile xmlFile) {
-        if (StrUtil.isBlank(namespace) || xmlFile == null) {
+        if (StringUtil.isEmpty(namespace) || xmlFile == null) {
             return;
         }
         this.namespaceToXmlFileCache.put(namespace, xmlFile);
@@ -171,7 +171,7 @@ public class MapperXmlCacheService {
      */
     public void removeFromCacheByPath(String filePath) {
         String namespace = this.pathToNamespaceCache.remove(filePath);
-        if (StrUtil.isNotBlank(namespace)) {
+        if (StringUtil.isNotEmpty(namespace)) {
             this.namespaceToXmlFileCache.remove(namespace);
         }
     }
@@ -193,6 +193,6 @@ public class MapperXmlCacheService {
      * @since 1.0.0
      */
     public boolean isCacheEmpty() {
-        return CollUtil.isEmpty(this.namespaceToXmlFileCache);
+        return MapUtils.isEmpty(this.namespaceToXmlFileCache);
     }
 }

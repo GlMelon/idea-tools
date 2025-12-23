@@ -1,11 +1,11 @@
 package io.github.easy.tools.service.doc;
 
-import cn.hutool.core.util.StrUtil;
 import com.intellij.lang.ASTNode;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
@@ -23,6 +23,7 @@ import com.intellij.psi.PsiParserFacade;
 import com.intellij.psi.PsiTypeParameter;
 import com.intellij.psi.javadoc.PsiDocComment;
 import com.intellij.psi.util.PsiTypesUtil;
+import io.github.easy.tools.action.conversion.PropertyNameConverter;
 import io.github.easy.tools.entity.doc.ParameterInfo;
 import io.github.easy.tools.service.doc.processor.AICommentProcessor;
 import io.github.easy.tools.service.doc.velocity.VelocityTemplateRenderer;
@@ -250,13 +251,14 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
         if (handler != null) {
             doc = handler.generateDoc(file, element);
         }
-        if (StrUtil.isBlank(doc)) {
+        if (StringUtil.isEmpty(doc)) {
             return;
         }
 
         Project project = file.getProject();
         PsiElementFactory elementFactory = JavaPsiFacade.getElementFactory(project);
-        PsiElement docCommentFromText = elementFactory.createDocCommentFromText(StrUtil.trimEnd(doc));
+        // StringUtil.trimTrailing 移除末尾空白
+        PsiElement docCommentFromText = elementFactory.createDocCommentFromText(doc.trim());
 
         // 获取注释比较器
         DocCommentComparator comparator = COMMENT_COMPARATOR_MAP.get(file.getFileType().getName());
@@ -279,7 +281,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
         LLMConfigState.ModelConfig modelConfig = configState.getDefaultModelConfig();
 
         // 检查AI配置
-        if (StrUtil.isBlank(modelConfig.baseUrl) || StrUtil.isBlank(modelConfig.modelName)) {
+        if (StringUtil.isEmpty(modelConfig.baseUrl) || StringUtil.isEmpty(modelConfig.modelName)) {
             NotificationUtil.showWarning(file.getProject(), "请先配置大模型相关信息");
             return;
         }
@@ -307,7 +309,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
 
         // 构建AI请求
         String prompt = this.buildAiPrompt(element, templateContent, context, elementText);
-        if (StrUtil.isBlank(prompt)) {
+        if (StringUtil.isEmpty(prompt)) {
             NotificationUtil.showWarning(file.getProject(), "无法生成AI提示词");
             return;
         }
@@ -359,7 +361,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
      * @since 1.0.0
      */
     private String getTemplateContent(PsiElement element) {
-        DocConfigService config = DocConfigService.getInstance();
+        DocConfigService config = DocConfigService.getInstance(element.getProject());
         if (element instanceof PsiClass) {
             return config.classTemplate;
         } else if (element instanceof PsiMethod) {
@@ -475,7 +477,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
     private void registerNonStandardTags(Project project, PsiElement docContent) {
         try {
             // 检查是否启用非标准标签支持
-            DocConfigService config = DocConfigService.getInstance();
+            DocConfigService config = DocConfigService.getInstance(project);
             if (!config.nonStandardDoc) {
                 return;
             }
@@ -629,7 +631,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
             this.addBaseParameters(context, file);
 
             // 2. 添加自定义参数
-            this.addCustomParameters(context);
+            this.addCustomParameters(context, file);
 
             // 3. 添加元素特定参数
             this.addElementSpecificParameters(context, element);
@@ -652,11 +654,12 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
          * 添加自定义参数到上下文 <p> 使用Stream API优化参数添加，仅处理有效的参数 </p>
          *
          * @param context Velocity上下文
+         * @param file 文件
          * @since 1.0.0
          */
-        private void addCustomParameters(VelocityContext context) {
-            DocConfigService.getInstance().customParameters.stream()
-                    .filter(param -> param != null && StrUtil.isNotBlank(param.getName()))
+        private void addCustomParameters(VelocityContext context, PsiFile file) {
+            DocConfigService.getInstance(file.getProject()).customParameters.stream()
+                    .filter(param -> param != null && StringUtil.isNotEmpty(param.getName()))
                     .forEach(param -> context.put(
                             param.getName(),
                             param.getValue()
@@ -680,7 +683,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
          * @since 1.0.0
          */
         private Map<String, Object> getBaseParameters(PsiFile file) {
-            Map<String, Object> baseParameters = DocConfigService.getInstance().getBaseParameters();
+            Map<String, Object> baseParameters = DocConfigService.getInstance(file.getProject()).getBaseParameters();
             String version = this.getProjectVersion(file);
             baseParameters.put(DocConfigService.PARAM_VERSION, version);
             baseParameters.put(DocConfigService.PARAM_SINCE, version);
@@ -922,7 +925,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
          */
         @Override
         protected String doGenerateDoc(PsiFile file, PsiClass element, Context context) {
-            DocConfigService cfg = DocConfigService.getInstance();
+            DocConfigService cfg = DocConfigService.getInstance(file.getProject());
             return VELOCITY_RENDERER.render(cfg.classTemplate, context, element);
         }
 
@@ -950,8 +953,8 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
                 ParameterInfo info = ParameterInfo.builder()
                         .originalName(paramName)
                         .shortName(paramName)
-                        .lowerFirstName(StrUtil.lowerFirst(typeName))
-                        .splitName(StrUtil.toUnderlineCase(typeName).replace("_", " "))
+                        .lowerFirstName(StringUtil.decapitalize(typeName))
+                        .splitName(PropertyNameConverter.toLowerUnderline(typeName).replace("_", " "))
                         .qualifiedTypeName("parameter")
                         .simpleTypeName("parameter")
                         .build();
@@ -982,7 +985,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
          */
         @Override
         protected String doGenerateDoc(PsiFile file, PsiMethod element, Context context) {
-            DocConfigService cfg = DocConfigService.getInstance();
+            DocConfigService cfg = DocConfigService.getInstance(file.getProject());
             return VELOCITY_RENDERER.render(cfg.methodTemplate, context, element);
         }
 
@@ -1029,9 +1032,9 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
                 }
 
                 String splitName = StrConverter.convertClassName(classNameWithoutGeneric);
-                // 构建lowerFirstName: 外层类型小写 + 泛型参数小写
+                // 构廻lowerFirstName: 外层类型小写 + 泛型参数小写
                 // 例如：List<Q> -> listq, Map<K,V> -> mapkv
-                String lowerFirstName = StrUtil.lowerFirst(classNameWithoutGeneric) + genericPart;
+                String lowerFirstName = StringUtil.decapitalize(classNameWithoutGeneric) + genericPart;
 
                 ParameterInfo returnInfo = ParameterInfo.builder()
                         .originalName(returnTypeText)
@@ -1064,7 +1067,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
                         .shortName(paramName)
                         .simpleTypeName("type-parameter")
                         .qualifiedTypeName("type-parameter")
-                        .lowerFirstName(StrUtil.lowerFirst(typeName))
+                        .lowerFirstName(StringUtil.decapitalize(typeName))
                         .splitName("类型参数 " + typeName)
                         .build();
                 parameters.add(param);
@@ -1080,8 +1083,8 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
                         .shortName(paramName)
                         .simpleTypeName(paramType)
                         .qualifiedTypeName(parameter.getType().getCanonicalText())
-                        .lowerFirstName(StrUtil.lowerFirst(paramName))
-                        .splitName(StrUtil.toUnderlineCase(paramName).replace("_", " "))
+                        .lowerFirstName(StringUtil.decapitalize(paramName))
+                        .splitName(PropertyNameConverter.toLowerUnderline(paramName).replace("_", " "))
                         .build();
                 parameters.add(param);
             }
@@ -1117,7 +1120,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
          */
         @Override
         protected String doGenerateDoc(PsiFile file, PsiField element, Context context) {
-            DocConfigService cfg = DocConfigService.getInstance();
+            DocConfigService cfg = DocConfigService.getInstance(file.getProject());
             return VELOCITY_RENDERER.render(cfg.fieldTemplate, context, element);
         }
 

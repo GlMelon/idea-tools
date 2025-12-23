@@ -1,8 +1,10 @@
 package io.github.easy.tools.utils;
 
-import cn.hutool.core.date.DateUtil;
-import cn.hutool.core.util.StrUtil;
+import com.intellij.openapi.util.text.StringUtil;
+import io.github.easy.tools.action.conversion.PropertyNameConverter;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
@@ -23,7 +25,7 @@ public class TemplateUtils {
      * @return true if blank
      */
     public boolean isBlank(String str) {
-        return StrUtil.isBlank(str);
+        return StringUtil.isEmpty(str);
     }
 
     /**
@@ -33,11 +35,11 @@ public class TemplateUtils {
      * @return words
      */
     public String underscoreToWords(String text) {
-        if (StrUtil.isBlank(text)) {
+        if (StringUtil.isEmpty(text)) {
             return "";
         }
         return Arrays.stream(text.split("_"))
-                .filter(StrUtil::isNotBlank)
+                .filter(s -> !StringUtil.isEmpty(s))
                 .collect(Collectors.joining(" "));
     }
 
@@ -48,11 +50,11 @@ public class TemplateUtils {
      * @return words
      */
     public String camelToWords(String text) {
-        if (StrUtil.isBlank(text)) {
+        if (StringUtil.isEmpty(text)) {
             return "";
         }
-        return Arrays.stream(StrUtil.toUnderlineCase(text).split("_"))
-                .filter(StrUtil::isNotBlank)
+        return Arrays.stream(PropertyNameConverter.toLowerUnderline(text).split("_"))
+                .filter(s -> !StringUtil.isEmpty(s))
                 .collect(Collectors.joining(" "));
     }
 
@@ -63,12 +65,12 @@ public class TemplateUtils {
      * @return title words
      */
     public String camelToTitleWords(String text) {
-        if (StrUtil.isBlank(text)) {
+        if (StringUtil.isEmpty(text)) {
             return "";
         }
-        return Arrays.stream(StrUtil.toUnderlineCase(text).split("_"))
-                .filter(StrUtil::isNotBlank)
-                .map(StrUtil::upperFirst)
+        return Arrays.stream(PropertyNameConverter.toLowerUnderline(text).split("_"))
+                .filter(s -> !StringUtil.isEmpty(s))
+                .map(this::upperFirst)
                 .collect(Collectors.joining(" "));
     }
 
@@ -79,12 +81,12 @@ public class TemplateUtils {
      * @return lower words
      */
     public String camelToLowerWords(String text) {
-        if (StrUtil.isBlank(text)) {
+        if (StringUtil.isEmpty(text)) {
             return "";
         }
-        return Arrays.stream(StrUtil.toUnderlineCase(text).split("_"))
-                .filter(StrUtil::isNotBlank)
-                .map(String::toLowerCase)
+        return Arrays.stream(PropertyNameConverter.toLowerUnderline(text).split("_"))
+                .filter(s -> !StringUtil.isEmpty(s))
+                .map(s -> s.toLowerCase())
                 .collect(Collectors.joining(" "));
     }
 
@@ -94,7 +96,7 @@ public class TemplateUtils {
      * @return now string
      */
     public String now() {
-        return DateUtil.now();
+        return LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
     }
 
     /**
@@ -104,6 +106,19 @@ public class TemplateUtils {
      * @return formatted date
      */
     public String formatNow(String pattern) {
-        return DateUtil.format(DateUtil.date(), pattern);
+        return LocalDateTime.now().format(DateTimeFormatter.ofPattern(pattern));
+    }
+
+    /**
+     * 将字符串首字母转为大写
+     *
+     * @param str 字符串
+     * @return 首字母大写的字符串
+     */
+    private String upperFirst(String str) {
+        if (str == null || str.isEmpty()) {
+            return str;
+        }
+        return Character.toUpperCase(str.charAt(0)) + str.substring(1);
     }
 }

@@ -1,8 +1,8 @@
 package io.github.easy.tools.service.llm.provider;
 
-import cn.hutool.http.HttpRequest;
-import cn.hutool.http.HttpResponse;
-import cn.hutool.json.JSONUtil;
+import com.google.gson.JsonObject;
+import com.intellij.util.io.HttpRequests;
+import java.io.IOException;
 import io.github.easy.tools.constants.LLMConstants;
 import io.github.easy.tools.service.llm.AIRequest;
 import io.github.easy.tools.ui.config.LLMConfigState;
@@ -43,18 +43,12 @@ public class OllamaProvider implements AIProvider {
             String requestBody = this.buildRequestBody(request);
             
             // 发送HTTP请求到Ollama API
-            HttpResponse response = HttpRequest.post(config.baseUrl + LLMConstants.ApiEndpoint.OLLAMA_GENERATE)
-                    .header("Content-Type", "application/json")
-                    .body(requestBody)
-                    .timeout(config.timeout)
-                    .execute();
-            
-            if (response.getStatus() == 200) {
-                return response.body();
-            } else {
-                throw new RuntimeException("Ollama服务调用失败: " + response.body());
-            }
-        } catch (Exception e) {
+            return HttpRequests.post(config.baseUrl + LLMConstants.ApiEndpoint.OLLAMA_GENERATE, "application/json")
+                    .connect(httpRequest -> {
+                        httpRequest.write(requestBody);
+                        return httpRequest.readString();
+                    });
+        } catch (IOException e) {
             throw new RuntimeException("调用Ollama服务失败: " + e.getMessage(), e);
         }
     }
@@ -73,15 +67,18 @@ public class OllamaProvider implements AIProvider {
      */
     private String buildRequestBody(AIRequest request) {
         // 构建Ollama请求体
-        return JSONUtil.createObj()
-                .set("model", request.getModel())
-                .set("prompt", request.getPrompt())
-                .set("stream", request.isStream())
-                .set("options", JSONUtil.createObj()
-                        .set("temperature", request.getTemperature())
-                        .set("top_p", request.getTopP())
-                        .set("top_k", request.getTopK())
-                        .set("num_predict", request.getMaxTokens()))
-                .toString();
+        JsonObject json = new JsonObject();
+        json.addProperty("model", request.getModel());
+        json.addProperty("prompt", request.getPrompt());
+        json.addProperty("stream", request.isStream());
+        
+        JsonObject options = new JsonObject();
+        options.addProperty("temperature", request.getTemperature());
+        options.addProperty("top_p", request.getTopP());
+        options.addProperty("top_k", request.getTopK());
+        options.addProperty("num_predict", request.getMaxTokens());
+        json.add("options", options);
+        
+        return json.toString();
     }
 }

@@ -1,11 +1,11 @@
 package io.github.easy.tools.ui.mybatis;
 
-import cn.hutool.core.util.StrUtil;
 import com.intellij.codeInsight.daemon.RelatedItemLineMarkerInfo;
 import com.intellij.codeInsight.daemon.RelatedItemLineMarkerProvider;
 import com.intellij.codeInsight.navigation.NavigationGutterIconBuilder;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.editor.markup.GutterIconRenderer;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
@@ -65,13 +65,13 @@ public class XmlSqlTagLineMarkerProvider extends RelatedItemLineMarkerProvider {
 
         // 获取标签的id属性（对应接口方法名）
         String methodId = xmlTag.getAttributeValue("id");
-        if (StrUtil.isBlank(methodId)) {
+        if (StringUtil.isEmpty(methodId)) {
             return;
         }
 
         // 获取namespace（对应接口全限定名）
         String namespace = MyBatisUtils.getMapperNamespace(xmlTag);
-        if (StrUtil.isBlank(namespace)) {
+        if (StringUtil.isEmpty(namespace)) {
             return;
         }
 

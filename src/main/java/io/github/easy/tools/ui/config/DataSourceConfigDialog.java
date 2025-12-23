@@ -1,8 +1,8 @@
 package io.github.easy.tools.ui.config;
 
-import cn.hutool.core.util.StrUtil;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBPasswordField;
 import com.intellij.ui.components.JBTextField;
@@ -27,27 +27,44 @@ import java.awt.FlowLayout;
  * @author haijun
  * @version 1.0.0
  * @since 1.0.0
+ * @date 2025-12-23 09:34:50
  */
 public class DataSourceConfigDialog extends DialogWrapper {
 
-    /** 数据源配置 */
+    /**
+     * data source
+     */
     private final CodeGenConfigState.DataSourceConfig dataSource;
-    /** 是否为新增模式 */
+    /**
+     * is new mode
+     */
     private final boolean isNewMode;
 
-    /** 名称输入框 */
+    /**
+     * name field
+     */
     private JBTextField nameField;
-    /** JDBC URL 输入框 */
+    /**
+     * jdbc url field
+     */
     private JBTextField jdbcUrlField;
-    /** 用户名输入框 */
+    /**
+     * username field
+     */
     private JBTextField usernameField;
-    /** 密码输入框 */
+    /**
+     * password field
+     */
     private JBPasswordField passwordField;
-    /** 驱动类型下拉框 */
+    /**
+     * driver type combo
+     */
     private JComboBox<String> driverTypeCombo;
 
     /**
      * 构造函数（新增模式）
+     *
+     * @since 1.0.0
      */
     public DataSourceConfigDialog() {
         this(null);
@@ -57,6 +74,7 @@ public class DataSourceConfigDialog extends DialogWrapper {
      * 构造函数（编辑模式）
      *
      * @param dataSource 要编辑的数据源配置
+     * @since 1.0.0
      */
     public DataSourceConfigDialog(@Nullable CodeGenConfigState.DataSourceConfig dataSource) {
         super(true);
@@ -66,6 +84,12 @@ public class DataSourceConfigDialog extends DialogWrapper {
         this.init();
     }
 
+    /**
+     * Create Center Panel
+     *
+     * @return component
+     * @since 1.0.0
+     */
     @Override
     protected @Nullable JComponent createCenterPanel() {
         JPanel panel = new JPanel(new BorderLayout());
@@ -78,15 +102,15 @@ public class DataSourceConfigDialog extends DialogWrapper {
 
         String[] driverTypes = {"mysql", "postgresql", "sqlserver", "oracle"};
         this.driverTypeCombo = new JComboBox<>(driverTypes);
-        this.driverTypeCombo.setSelectedItem(StrUtil.blankToDefault(this.dataSource.getDriverType(), "mysql"));
+        this.driverTypeCombo.setSelectedItem(StringUtil.defaultIfEmpty(this.dataSource.getDriverType(), "mysql"));
 
         // 添加URL模板提示
         this.driverTypeCombo.addActionListener(e -> {
             String selected = (String) this.driverTypeCombo.getSelectedItem();
             String currentUrl = this.jdbcUrlField.getText();
-            
+
             // 如果URL为空，或者当前URL是其他数据库的默认URL模板，则自动更新
-            if (StrUtil.isBlank(currentUrl) || this.isDefaultUrlTemplate(currentUrl)) {
+            if (StringUtil.isNotEmpty(currentUrl) || this.isDefaultUrlTemplate(currentUrl)) {
                 this.jdbcUrlField.setText(this.getDefaultJdbcUrl(selected));
             }
         });
@@ -113,6 +137,8 @@ public class DataSourceConfigDialog extends DialogWrapper {
 
     /**
      * 测试数据库连接
+     *
+     * @since 1.0.0
      */
     private void testConnection() {
         this.applyFieldsToDataSource();
@@ -131,9 +157,10 @@ public class DataSourceConfigDialog extends DialogWrapper {
      *
      * @param driverType 驱动类型
      * @return JDBC URL 模板
+     * @since 1.0.0
      */
     private String getDefaultJdbcUrl(String driverType) {
-        return switch (StrUtil.blankToDefault(driverType, "mysql").toLowerCase()) {
+        return switch (StringUtil.defaultIfEmpty(driverType, "mysql").toLowerCase()) {
             case "mysql" -> "jdbc:mysql://localhost:3306/database?useUnicode=true&characterEncoding=utf8&useSSL=false";
             case "postgresql" -> "jdbc:postgresql://localhost:5432/database";
             case "sqlserver" -> "jdbc:sqlserver://localhost:1433;databaseName=database";
@@ -150,12 +177,13 @@ public class DataSourceConfigDialog extends DialogWrapper {
      *
      * @param url 当前 JDBC URL
      * @return 是否为默认模板
+     * @since 1.0.0
      */
     private boolean isDefaultUrlTemplate(String url) {
-        if (StrUtil.isBlank(url)) {
+        if (StringUtil.isEmpty(url)) {
             return false;
         }
-        
+
         // 检查是否与任何默认模板匹配
         return url.equals(this.getDefaultJdbcUrl("mysql")) ||
                 url.equals(this.getDefaultJdbcUrl("postgresql")) ||
@@ -165,6 +193,8 @@ public class DataSourceConfigDialog extends DialogWrapper {
 
     /**
      * 将输入框的值应用到数据源配置对象
+     *
+     * @since 1.0.0
      */
     private void applyFieldsToDataSource() {
         this.dataSource.setName(this.nameField.getText().trim());
@@ -174,16 +204,21 @@ public class DataSourceConfigDialog extends DialogWrapper {
         this.dataSource.setDriverType((String) this.driverTypeCombo.getSelectedItem());
     }
 
+    /**
+     * Do OK Action
+     *
+     * @since 1.0.0
+     */
     @Override
     protected void doOKAction() {
         this.applyFieldsToDataSource();
 
-        if (StrUtil.isBlank(this.dataSource.getName())) {
+        if (StringUtil.isEmpty(this.dataSource.getName())) {
             Messages.showWarningDialog("数据源名称不能为空", "验证失败");
             return;
         }
 
-        if (StrUtil.isBlank(this.dataSource.getJdbcUrl())) {
+        if (StringUtil.isEmpty(this.dataSource.getJdbcUrl())) {
             Messages.showWarningDialog("JDBC URL 不能为空", "验证失败");
             return;
         }
@@ -195,6 +230,7 @@ public class DataSourceConfigDialog extends DialogWrapper {
      * 获取配置后的数据源对象
      *
      * @return 数据源配置
+     * @since 1.0.0
      */
     public CodeGenConfigState.DataSourceConfig getDataSource() {
         return this.dataSource;
@@ -204,6 +240,7 @@ public class DataSourceConfigDialog extends DialogWrapper {
      * 是否为新增模式
      *
      * @return 是否新增
+     * @since 1.0.0
      */
     public boolean isNewMode() {
         return this.isNewMode;
