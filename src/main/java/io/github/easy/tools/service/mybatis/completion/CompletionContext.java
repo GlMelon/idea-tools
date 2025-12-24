@@ -126,6 +126,12 @@ public class CompletionContext {
         TAG_TEMPLATE,
 
         /**
+         * 关键字补全(直接输入if/for等关键字)
+         *
+         */
+        KEYWORD_ONLY,
+
+        /**
          * 普通文本
          *
          */

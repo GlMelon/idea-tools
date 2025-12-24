@@ -11,6 +11,7 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.patterns.PlatformPatterns;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiMethod;
@@ -586,17 +587,37 @@ public class MyBatisXmlCompletionContributor extends CompletionContributor {
                 @NotNull MyBatisExpressionParser.ExpressionParseResult parseResult,
                 boolean isInXmlAttribute) {
 
-            // 优先判断标签模板(最高优先级)
-            // 如果在XML属性中,不支持标签模板
-            if (!isInXmlAttribute && parseResult.getParts().length >= 2) {
+            // 如果在XML属性中，不支持标签模板和关键字补全
+            if (isInXmlAttribute) {
+                // 在属性中，如果包含点号就是字段补全，否则是参数补全
+                return currentText.contains(".") ? 
+                    CompletionContext.CompletionType.FIELD : 
+                    CompletionContext.CompletionType.PARAMETER;
+            }
+
+            String[] parts = parseResult.getParts();
+            
+            // 处理直接输入关键字的情况(如: "if", "for")
+            if (parts.length == 1 && !currentText.contains(".")) {
+                String input = currentText.toLowerCase();
+                if (this.isTagKeyword(input) || this.isTagKeywordPrefix(input)) {
+                    return CompletionContext.CompletionType.KEYWORD_ONLY;
+                }
+            }
+
+            // 优先判断标签模板(如: query.if, query.name.if)
+            // 但是当lastPart为空时(如query.)，应该返回FIELD类型，让字段和标签同时补全
+            if (parts.length >= 2) {
                 // 检查最后一部分是否是标签关键字
-                String lastPart = parseResult.getParts()[parseResult.getParts().length - 1].toLowerCase();
-                if (this.isTagKeyword(lastPart)) {
+                String lastPart = parts[parts.length - 1].toLowerCase();
+                // 只有当lastPart非空且是标签关键字或前缀时，才返回TAG_TEMPLATE
+                if (StringUtil.isNotEmpty(lastPart) && 
+                    (this.isTagKeyword(lastPart) || this.isTagKeywordPrefix(lastPart))) {
                     return CompletionContext.CompletionType.TAG_TEMPLATE;
                 }
             }
 
-            // 如果包含点号且不是标签关键字,是字段补全
+            // 如果包含点号且不是标签关键字，是字段补全
             if (currentText.contains(".")) {
                 return CompletionContext.CompletionType.FIELD;
             }
@@ -616,7 +637,25 @@ public class MyBatisXmlCompletionContributor extends CompletionContributor {
             return keyword.equals("if") || keyword.equals("ifnull") ||
                    keyword.equals("for") || keyword.equals("foreach") ||
                    keyword.equals("where") || keyword.equals("set") ||
-                   keyword.equals("choose");
+                   keyword.equals("when") || keyword.equals("choose");
+        }
+
+        /**
+         * 判断是否为标签关键字的前缀
+         *
+         * @param input 输入文本
+         * @return true如果是标签关键字的前缀
+         * @since 1.0.0
+         */
+        private boolean isTagKeywordPrefix(@NotNull String input) {
+            if (StringUtil.isEmpty(input)) {
+                return true;
+            }
+            // 检查是否是任何标签关键字的前缀
+            return "if".startsWith(input) || "ifnull".startsWith(input) ||
+                   "for".startsWith(input) || "foreach".startsWith(input) ||
+                   "where".startsWith(input) || "set".startsWith(input) ||
+                   "when".startsWith(input) || "choose".startsWith(input);
         }
     }
 }

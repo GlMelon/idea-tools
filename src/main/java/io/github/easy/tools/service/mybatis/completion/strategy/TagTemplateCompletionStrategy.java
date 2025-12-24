@@ -11,6 +11,8 @@ import com.intellij.icons.AllIcons;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiParameter;
 import io.github.easy.tools.action.conversion.PropertyNameConverter;
@@ -70,6 +72,13 @@ public class TagTemplateCompletionStrategy implements CompletionStrategy {
                 .template("<if test=\"{expression} == null or {expression} == ''\">\n    {cursor}\n</if>")
                 .build());
 
+        // when标签模板
+        this.templates.add(TagTemplate.builder()
+                .keyword("when")
+                .description("生成when标签")
+                .template("<when test=\"{expression} != null\">\n    {cursor}\n</when>")
+                .build());
+
         // foreach标签模板
         this.templates.add(TagTemplate.builder()
                 .keyword("for")
@@ -115,54 +124,29 @@ public class TagTemplateCompletionStrategy implements CompletionStrategy {
     @Override
     public void provideCompletions(@NotNull CompletionContext context, @NotNull CompletionResultSet result) {
         String currentText = context.getCurrentText();
+        CompletionContext.CompletionType completionType = context.getCompletionType();
 
-        // 解析表达式,提取关键字
-        MyBatisExpressionParser.ExpressionParseResult parseResult =
-                MyBatisExpressionParser.parseForCompletion(currentText);
-
-        String[] parts = parseResult.getParts();
-        if (parts.length < 2) {
+        // 处理直接输入关键字的情况(如: "if", "for")
+        if (completionType == CompletionContext.CompletionType.KEYWORD_ONLY) {
+            this.provideKeywordOnlyCompletions(context, result);
             return;
         }
 
-        // 最后一部分是关键字（可能是空字符串或部分关键字）
-        String keyword = parts[parts.length - 1].toLowerCase();
-
-        // 前面部分是表达式
-        StringBuilder expressionBuilder = new StringBuilder();
-        for (int i = 0; i < parts.length - 1; i++) {
-            if (i > 0) {
-                expressionBuilder.append(".");
+        // 处理带参数名的标签模板(如: "query.if", "query.name.if")
+        if (completionType == CompletionContext.CompletionType.TAG_TEMPLATE) {
+            this.provideTagTemplateCompletions(context, result);
+            return;
+        }
+        
+        // 在FIELD类型时，如果当前输入以标签关键字前缀结尾，也提供标签补全
+        if (completionType == CompletionContext.CompletionType.FIELD) {
+            String[] parts = MyBatisExpressionParser.parseForCompletion(currentText).getParts();
+            if (parts.length >= 2) {
+                String lastPart = parts[parts.length - 1].toLowerCase();
+                if (this.isTagKeywordPrefix(lastPart)) {
+                    this.provideTagTemplateCompletions(context, result);
+                }
             }
-            expressionBuilder.append(parts[i]);
-        }
-        String expression = expressionBuilder.toString();
-
-        // 验证表达式是否有效
-        if (!this.isValidExpression(context, expression)) {
-            return;
-        }
-
-        // 使用自定义前缀匹配器，只匹配标签关键字部分
-        // 例如：输入"query.endTime."，keyword=""，匹配所有标签
-        // 例如：输入"query.endTime.i"，keyword="i"，匹配if和ifnull
-        CompletionResultSet tagResult = result.withPrefixMatcher(keyword);
-
-        // 提供匹配的模板
-        for (TagTemplate template : this.templates) {
-            // 由于使用了自定义PrefixMatcher，这里不需要手动检查startsWith
-            // PrefixMatcher会自动过滤
-            String fieldName = this.extractFieldName(parts);
-            LookupElementBuilder builder = LookupElementBuilder
-                    .create(template.getKeyword())
-                    .withIcon(AllIcons.Nodes.Tag)
-                    .withTypeText("MyBatis标签")
-                    .withTailText(" " + template.getDescription(), true)
-                    .withInsertHandler(new TagTemplateInsertHandler(template, expression, fieldName));
-
-            // 为补全项添加高优先级,确保在其他插件之前显示
-            LookupElement prioritized = PrioritizedLookupElement.withPriority(builder, 100.0);
-            tagResult.addElement(prioritized);
         }
     }
 
@@ -180,25 +164,29 @@ public class TagTemplateCompletionStrategy implements CompletionStrategy {
             return false;
         }
 
-        // 如果已经确定是TAG_TEMPLATE类型，直接返回true
-        if (context.getCompletionType() == CompletionContext.CompletionType.TAG_TEMPLATE) {
+        CompletionContext.CompletionType completionType = context.getCompletionType();
+        
+        // 直接支持TAG_TEMPLATE和KEYWORD_ONLY类型
+        if (completionType == CompletionContext.CompletionType.TAG_TEMPLATE ||
+            completionType == CompletionContext.CompletionType.KEYWORD_ONLY) {
             return true;
         }
-
-        // 即使是FIELD类型，也检查是否可能是标签模板
-        // 这样可以同时提供字段补全和标签模板补全
-        String currentText = context.getCurrentText();
-        MyBatisExpressionParser.ExpressionParseResult parseResult =
-                MyBatisExpressionParser.parseForCompletion(currentText);
-
-        // 至少要有两个部分: 参数名 + 关键字或字段
-        if (parseResult.getParts().length < 2) {
-            return false;
+        
+        // 在FIELD类型时，如果当前输入以标签关键字前缀结尾，也支持标签补全
+        if (completionType == CompletionContext.CompletionType.FIELD) {
+            String currentText = context.getCurrentText();
+            MyBatisExpressionParser.ExpressionParseResult parseResult =
+                    MyBatisExpressionParser.parseForCompletion(currentText);
+            String[] parts = parseResult.getParts();
+            
+            // 如果parts长度>=2，检查最后一部分是否是标签关键字的前缀
+            if (parts.length >= 2) {
+                String lastPart = parts[parts.length - 1].toLowerCase();
+                return this.isTagKeywordPrefix(lastPart);
+            }
         }
-
-        // 检查最后一部分是否可能是标签关键字
-        String lastPart = parseResult.getParts()[parseResult.getParts().length - 1].toLowerCase();
-        return this.isTagKeywordPrefix(lastPart);
+        
+        return false;
     }
 
     /**
@@ -221,6 +209,96 @@ public class TagTemplateCompletionStrategy implements CompletionStrategy {
         }
 
         return false;
+    }
+
+    /**
+     * 提供关键字补全(直接输入if/for等关键字)
+     *
+     * @param context 补全上下文
+     * @param result  补全结果集
+     * @since 1.0.0
+     */
+    private void provideKeywordOnlyCompletions(@NotNull CompletionContext context,
+                                               @NotNull CompletionResultSet result) {
+        String currentText = context.getCurrentText().toLowerCase();
+        
+        // 使用自定义前缀匹配器
+        CompletionResultSet tagResult = result.withPrefixMatcher(currentText);
+        
+        // 提供所有匹配的标签关键字
+        for (TagTemplate template : this.templates) {
+            LookupElementBuilder builder = LookupElementBuilder
+                    .create(template.getKeyword())
+                    .withIcon(AllIcons.Nodes.Tag)
+                    .withTypeText("MyBatis标签")
+                    .withTailText(" " + template.getDescription(), true)
+                    .withInsertHandler(new KeywordOnlyInsertHandler(template));
+
+            LookupElement prioritized = PrioritizedLookupElement.withPriority(builder, 100.0);
+            tagResult.addElement(prioritized);
+        }
+    }
+
+    /**
+     * 提供标签模板补全(query.if, query.name.if)
+     *
+     * @param context 补全上下文
+     * @param result  补全结果集
+     * @since 1.0.0
+     */
+    private void provideTagTemplateCompletions(@NotNull CompletionContext context,
+                                               @NotNull CompletionResultSet result) {
+        String currentText = context.getCurrentText();
+        
+        // 解析表达式
+        MyBatisExpressionParser.ExpressionParseResult parseResult =
+                MyBatisExpressionParser.parseForCompletion(currentText);
+
+        String[] parts = parseResult.getParts();
+        if (parts.length < 2) {
+            return;
+        }
+
+        // 最后一部分是关键字
+        String keyword = parts[parts.length - 1].toLowerCase();
+
+        // 前面部分是表达式
+        StringBuilder expressionBuilder = new StringBuilder();
+        for (int i = 0; i < parts.length - 1; i++) {
+            if (i > 0) {
+                expressionBuilder.append(".");
+            }
+            expressionBuilder.append(parts[i]);
+        }
+        String expression = expressionBuilder.toString();
+
+        // 验证表达式是否有效
+        if (!this.isValidExpression(context, expression)) {
+            return;
+        }
+
+        // 判断是单个字段还是对象级别
+        boolean isObjectLevel = parts.length == 2; // 如: query.if
+        boolean isFieldLevel = parts.length >= 3;   // 如: query.name.if
+
+        // 使用自定义前缀匹配器
+        CompletionResultSet tagResult = result.withPrefixMatcher(keyword);
+
+        // 提供匹配的模板
+        for (TagTemplate template : this.templates) {
+            String fieldName = this.extractFieldName(parts);
+            
+            LookupElementBuilder builder = LookupElementBuilder
+                    .create(template.getKeyword())
+                    .withIcon(AllIcons.Nodes.Tag)
+                    .withTypeText("MyBatis标签")
+                    .withTailText(" " + template.getDescription(), true)
+                    .withInsertHandler(new TagTemplateInsertHandler(
+                            template, expression, fieldName, isObjectLevel, context));
+
+            LookupElement prioritized = PrioritizedLookupElement.withPriority(builder, 100.0);
+            tagResult.addElement(prioritized);
+        }
     }
 
     /**
@@ -330,6 +408,14 @@ public class TagTemplateCompletionStrategy implements CompletionStrategy {
          *
          */
         private final String fieldName;
+        /**
+         * is object level (query.if)
+         */
+        private final boolean isObjectLevel;
+        /**
+         * completion context
+         */
+        private final CompletionContext context;
 
         /**
          * Tag Template Insert Handler
@@ -337,14 +423,20 @@ public class TagTemplateCompletionStrategy implements CompletionStrategy {
          * @param template template
          * @param expression expression
          * @param fieldName field name
+         * @param isObjectLevel is object level
+         * @param context completion context
          * @since 1.0.0
          */
         public TagTemplateInsertHandler(@NotNull TagTemplate template,
                                         @NotNull String expression,
-                                        @NotNull String fieldName) {
+                                        @NotNull String fieldName,
+                                        boolean isObjectLevel,
+                                        @NotNull CompletionContext context) {
             this.template = template;
             this.expression = expression;
             this.fieldName = fieldName;
+            this.isObjectLevel = isObjectLevel;
+            this.context = context;
         }
 
         /**
@@ -387,10 +479,23 @@ public class TagTemplateCompletionStrategy implements CompletionStrategy {
                     }
                 }
                 
+                // 获取当前行的缩进
+                String indent = this.getCurrentLineIndent(document, finalDeleteStart);
+                
                 document.deleteString(finalDeleteStart, finalDeleteEnd);
 
                 // 生成模板内容
-                String templateContent = this.generateTemplateContent();
+                String templateContent;
+                if (this.isObjectLevel && "if".equals(this.template.getKeyword())) {
+                    // 对象级别的if模板，为所有字段生成if标签
+                    templateContent = this.generateBatchFieldIfTemplate();
+                } else {
+                    // 单个字段的模板
+                    templateContent = this.generateTemplateContent();
+                }
+                
+                // 应用缩进到模板的每一行
+                templateContent = this.applyIndent(templateContent, indent);
 
                 // 插入模板
                 document.insertString(finalDeleteStart, templateContent);
@@ -401,6 +506,9 @@ public class TagTemplateCompletionStrategy implements CompletionStrategy {
                     int finalCursorPos = finalDeleteStart + cursorPos;
                     document.deleteString(finalCursorPos, finalCursorPos + "{cursor}".length());
                     editor.getCaretModel().moveToOffset(finalCursorPos);
+                } else {
+                    // 如果没有cursor标记，光标移动到末尾
+                    editor.getCaretModel().moveToOffset(finalDeleteStart + templateContent.length());
                 }
             });
         }
@@ -426,6 +534,67 @@ public class TagTemplateCompletionStrategy implements CompletionStrategy {
         }
 
         /**
+         * 获取当前行的缩进
+         *
+         * @param document 文档
+         * @param offset 偏移量
+         * @return 缩进字符串(空格或tab)
+         * @since 1.0.0
+         */
+        private String getCurrentLineIndent(@NotNull Document document, int offset) {
+            CharSequence chars = document.getCharsSequence();
+            
+            // 向前查找到行首
+            int lineStart = offset;
+            while (lineStart > 0 && chars.charAt(lineStart - 1) != '\n') {
+                lineStart--;
+            }
+            
+            // 提取行首的空白字符
+            StringBuilder indent = new StringBuilder();
+            for (int i = lineStart; i < offset && i < chars.length(); i++) {
+                char c = chars.charAt(i);
+                if (c == ' ' || c == '\t') {
+                    indent.append(c);
+                } else {
+                    break;
+                }
+            }
+            
+            return indent.toString();
+        }
+
+        /**
+         * 应用缩进到模板的每一行(除了第一行)
+         *
+         * @param template 模板内容
+         * @param indent 缩进字符串
+         * @return 应用缩进后的模板
+         * @since 1.0.0
+         */
+        private String applyIndent(@NotNull String template, @NotNull String indent) {
+            if (indent.isEmpty()) {
+                return template;
+            }
+            
+            String[] lines = template.split("\n", -1);
+            StringBuilder result = new StringBuilder();
+            
+            for (int i = 0; i < lines.length; i++) {
+                if (i > 0) {
+                    result.append("\n");
+                    // 为除了第一行外的所有行添加缩进
+                    if (!lines[i].isEmpty()) {
+                        result.append(indent);
+                    }
+                }
+                result.append(lines[i]);
+            }
+            
+            return result.toString();
+        }
+
+        /**
          * 生成模板内容
          *
          * @return 模板内容
@@ -435,6 +604,265 @@ public class TagTemplateCompletionStrategy implements CompletionStrategy {
             return this.template.getTemplate()
                     .replace("{expression}", this.expression)
                     .replace("{field}", this.fieldName);
+        }
+
+        /**
+         * 生成批量字段if模板(query.if -> 为所有字段生成if)
+         *
+         * @return 模板内容
+         * @since 1.0.0
+         */
+        private String generateBatchFieldIfTemplate() {
+            PsiMethod method = this.context.getMapperMethod();
+            if (method == null) {
+                return this.generateTemplateContent();
+            }
+
+            // 解析表达式获取根参数
+            MyBatisExpressionParser.ExpressionParseResult parseResult =
+                    MyBatisExpressionParser.parseForCompletion(this.expression);
+            String rootParam = parseResult.getRootParam();
+
+            // 查找根参数
+            PsiParameter parameter = null;
+            for (PsiParameter param : method.getParameterList().getParameters()) {
+                String paramName = param.getName();
+                String annotationValue = MyBatisUtils.getParamAnnotationValue(param);
+                if (StringUtil.isNotEmpty(annotationValue)) {
+                    paramName = annotationValue;
+                }
+                if (rootParam.equals(paramName)) {
+                    parameter = param;
+                    break;
+                }
+            }
+
+            if (parameter == null) {
+                return this.generateTemplateContent();
+            }
+
+            // 获取参数类型
+            PsiClass psiClass = MyBatisUtils.resolveRootParamClass(parameter, rootParam);
+            if (psiClass == null) {
+                return this.generateTemplateContent();
+            }
+
+            psiClass = MyBatisUtils.resolveActualClassFromType(psiClass);
+            if (psiClass == null) {
+                return this.generateTemplateContent();
+            }
+
+            // 获取所有字段
+            PsiField[] fields = psiClass.getAllFields();
+            if (fields.length == 0) {
+                return this.generateTemplateContent();
+            }
+
+            // 生成所有字段的if标签
+            StringBuilder result = new StringBuilder();
+            for (PsiField field : fields) {
+                String fieldName = field.getName();
+                
+                // 跳过静态字段和特殊字段
+                if (field.hasModifierProperty("static") || 
+                    "serialVersionUID".equals(fieldName) || 
+                    "class".equals(fieldName)) {
+                    continue;
+                }
+
+                String fullPath = this.expression + "." + fieldName;
+                String columnName = PropertyNameConverter.toLowerUnderline(fieldName);
+                
+                result.append("<if test=\"").append(fullPath)
+                      .append(" != null and ").append(fullPath)
+                      .append(" != ''\">").append("\n")
+                      .append("    ").append(columnName).append(" = #{")
+                      .append(fullPath).append("},\n")
+                      .append("</if>\n");
+            }
+
+            // 添加cursor标记
+            result.append("{cursor}");
+            
+            return result.toString();
+        }
+    }
+
+    /**
+     * 关键字插入处理器(直接输入if/for等关键字)
+     *
+     * @author haijun
+     * @version 1.0.0
+     * @date 2025-12-23
+     * @since 1.0.0
+     */
+    private static class KeywordOnlyInsertHandler implements InsertHandler<LookupElement> {
+
+        /**
+         * template
+         */
+        private final TagTemplate template;
+
+        /**
+         * Keyword Only Insert Handler
+         *
+         * @param template template
+         * @since 1.0.0
+         */
+        public KeywordOnlyInsertHandler(@NotNull TagTemplate template) {
+            this.template = template;
+        }
+
+        /**
+         * Handle Insert
+         *
+         * @param context context
+         * @param lookupElement lookup element
+         * @since 1.0.0
+         */
+        @Override
+        public void handleInsert(@NotNull InsertionContext context, @NotNull LookupElement lookupElement) {
+            Editor editor = context.getEditor();
+            Document document = editor.getDocument();
+
+            int startOffset = context.getStartOffset();
+            int tailOffset = context.getTailOffset();
+
+            WriteCommandAction.runWriteCommandAction(context.getProject(), () -> {
+                // 删除IntelliJ插入的关键字
+                document.deleteString(startOffset, tailOffset);
+
+                // 也删除之前输入的关键字前缀
+                int deleteStart = this.findKeywordStart(document, startOffset);
+                if (deleteStart < startOffset) {
+                    document.deleteString(deleteStart, startOffset);
+                }
+                
+                // 获取当前行的缩进
+                String indent = this.getCurrentLineIndent(document, deleteStart);
+
+                // 生成基本模板(不包含具体表达式)
+                String templateContent = this.generateBasicTemplate();
+                
+                // 应用缩进到模板的每一行
+                templateContent = this.applyIndent(templateContent, indent);
+
+                // 插入模板
+                document.insertString(deleteStart, templateContent);
+
+                // 移动光标到{cursor}位置
+                int cursorPos = templateContent.indexOf("{cursor}");
+                if (cursorPos >= 0) {
+                    int finalCursorPos = deleteStart + cursorPos;
+                    document.deleteString(finalCursorPos, finalCursorPos + "{cursor}".length());
+                    editor.getCaretModel().moveToOffset(finalCursorPos);
+                } else {
+                    editor.getCaretModel().moveToOffset(deleteStart + templateContent.length());
+                }
+            });
+        }
+
+        /**
+         * 查找关键字开始位置
+         *
+         * @param document document
+         * @param offset offset
+         * @return 开始位置
+         * @since 1.0.0
+         */
+        private int findKeywordStart(@NotNull Document document, int offset) {
+            int pos = offset - 1;
+            while (pos > 0) {
+                char c = document.getCharsSequence().charAt(pos);
+                if (Character.isWhitespace(c) || c == '>' || c == '{') {
+                    return pos + 1;
+                }
+                pos--;
+            }
+            return 0;
+        }
+
+        /**
+         * 获取当前行的缩进
+         *
+         * @param document 文档
+         * @param offset 偏移量
+         * @return 缩进字符串(空格或tab)
+         * @since 1.0.0
+         */
+        private String getCurrentLineIndent(@NotNull Document document, int offset) {
+            CharSequence chars = document.getCharsSequence();
+            
+            // 向前查找到行首
+            int lineStart = offset;
+            while (lineStart > 0 && chars.charAt(lineStart - 1) != '\n') {
+                lineStart--;
+            }
+            
+            // 提取行首的空白字符
+            StringBuilder indent = new StringBuilder();
+            for (int i = lineStart; i < offset && i < chars.length(); i++) {
+                char c = chars.charAt(i);
+                if (c == ' ' || c == '\t') {
+                    indent.append(c);
+                } else {
+                    break;
+                }
+            }
+            
+            return indent.toString();
+        }
+
+        /**
+         * 应用缩进到模板的每一行(除了第一行)
+         *
+         * @param template 模板内容
+         * @param indent 缩进字符串
+         * @return 应用缩进后的模板
+         * @since 1.0.0
+         */
+        private String applyIndent(@NotNull String template, @NotNull String indent) {
+            if (indent.isEmpty()) {
+                return template;
+            }
+            
+            String[] lines = template.split("\n", -1);
+            StringBuilder result = new StringBuilder();
+            
+            for (int i = 0; i < lines.length; i++) {
+                if (i > 0) {
+                    result.append("\n");
+                    // 为除了第一行外的所有行添加缩进
+                    if (!lines[i].isEmpty()) {
+                        result.append(indent);
+                    }
+                }
+                result.append(lines[i]);
+            }
+            
+            return result.toString();
+        }
+
+        /**
+         * 生成基本模板(不包含具体表达式)
+         *
+         * @return 模板内容
+         * @since 1.0.0
+         */
+        private String generateBasicTemplate() {
+            String keyword = this.template.getKeyword();
+            
+            // 根据不同的关键字生成不同的模板
+            return switch (keyword) {
+                case "if" -> "<if test=\"\">\n    {cursor}\n</if>";
+                case "ifnull" -> "<if test=\" == null or  == ''\">\n    {cursor}\n</if>";
+                case "when" -> "<when test=\"\">\n    {cursor}\n</when>";
+                case "for", "foreach" -> "<foreach collection=\"\" item=\"item\" separator=\",\">\n    {cursor}\n</foreach>";
+                case "where" -> "<where>\n    {cursor}\n</where>";
+                case "set" -> "<set>\n    {cursor}\n</set>";
+                case "choose" -> "<choose>\n    <when test=\"\">\n        {cursor}\n    </when>\n    <otherwise>\n        \n    </otherwise>\n</choose>";
+                default -> this.template.getTemplate().replace("{expression}", "").replace("{field}", "");
+            };
         }
     }
 }
