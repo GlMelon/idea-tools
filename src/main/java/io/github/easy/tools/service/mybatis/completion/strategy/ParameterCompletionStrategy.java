@@ -1,6 +1,5 @@
 package io.github.easy.tools.service.mybatis.completion.strategy;
 
-import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.codeInsight.completion.CompletionResultSet;
 import com.intellij.codeInsight.completion.InsertHandler;
 import com.intellij.codeInsight.completion.InsertionContext;
@@ -10,6 +9,9 @@ import com.intellij.codeInsight.lookup.LookupElementBuilder;
 import com.intellij.icons.AllIcons;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.util.text.StringUtil;
+import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiParameter;
 import io.github.easy.tools.service.mybatis.completion.CompletionContext;
@@ -74,8 +76,36 @@ public class ParameterCompletionStrategy implements CompletionStrategy {
                 paramName = annotationValue;
             }
 
-            // 不需要手动检查前缀匹配，PrefixMatcher会自动过滤
+            // 尝试推断实际类型（支持泛型参数推断）
             String typeName = parameter.getType().getPresentableText();
+            // 优先使用带context的重载方法，这样可以从XML的parameterType属性获取类型
+            // 这对于泛型方法参数特别重要，因为可以通过parameterType明确指定实际类型
+            PsiClass resolvedClass = MyBatisUtils.resolveRootParamClass(
+                    context.getPosition(),
+                    parseResult.getRootParam()
+            );
+            if (resolvedClass ==  null) {
+                resolvedClass = MyBatisUtils.resolveRootParamClass(parameter, paramName);
+            }
+            if (resolvedClass != null) {
+                String resolvedTypeName = resolvedClass.getName();
+                if (resolvedTypeName != null && !resolvedTypeName.equals(typeName)) {
+                    // 如果推断出了更具体的类型，使用推断后的类型名
+                    typeName = resolvedTypeName;
+
+                    // 如果有完整的限定名，尝试使用简短形式
+                    String qualifiedName = resolvedClass.getQualifiedName();
+                    if (qualifiedName != null) {
+                        typeName = qualifiedName;
+                        // 显示简短类名
+                        int lastDot = typeName.lastIndexOf('.');
+                        if (lastDot >= 0) {
+                            typeName = typeName.substring(lastDot + 1);
+                        }
+                    }
+                }
+            }
+
             boolean isPrimitive = this.isPrimitiveType(typeName);
 
             LookupElementBuilder builder = LookupElementBuilder
@@ -170,10 +200,10 @@ public class ParameterCompletionStrategy implements CompletionStrategy {
             int startOffset = insertionContext.getStartOffset();
             int tailOffset = insertionContext.getTailOffset();
 
-            String insertText = lookupElement.getLookupString();
+            // 确保文档已提交，避免在injected language环境中出现断言错误
+            PsiDocumentManager.getInstance(insertionContext.getProject()).commitDocument(document);
 
-            // 先删除IntelliJ刚插入的内容
-            document.deleteString(startOffset, tailOffset);
+            String insertText = lookupElement.getLookupString();
 
             // 获取用户输入的前缀，用于计算需要删除的范围
             String currentInput = this.context.getCurrentText();
@@ -185,16 +215,27 @@ public class ParameterCompletionStrategy implements CompletionStrategy {
                 prefixStart = 0;
             }
 
-            // 边界检查
-            if (prefixStart > documentLength || startOffset > documentLength) {
+            // 严格的边界检查 - 防止在injected language环境中出现断言错误
+            if (prefixStart >= documentLength || startOffset > documentLength || tailOffset > documentLength) {
                 // 如果offset无效，直接插入参数名
                 this.insertParameter(document, editor, startOffset, insertText);
                 return;
             }
 
-            // 删除前缀
-            if (prefixStart < startOffset) {
-                document.deleteString(prefixStart, startOffset);
+            try {
+                // 先删除IntelliJ刚插入的内容
+                if (startOffset < tailOffset) {
+                    document.deleteString(startOffset, tailOffset);
+                }
+
+                // 删除前缀
+                if (prefixStart < startOffset) {
+                    document.deleteString(prefixStart, startOffset);
+                }
+            } catch (Exception e) {
+                // 如果删除失败（比如在injected language环境中），直接在当前位置插入
+                this.insertParameter(document, editor, tailOffset, insertText);
+                return;
             }
 
             // 如果在XML属性中或不是基本类型，直接插入参数名

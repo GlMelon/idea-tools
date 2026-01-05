@@ -13,6 +13,7 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.psi.PsiAnnotation;
 import com.intellij.psi.PsiAnnotationMemberValue;
 import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiMethod;
@@ -75,8 +76,8 @@ public class FieldCompletionStrategy implements CompletionStrategy {
             return;
         }
 
-        // 解析到目标类
-        PsiClass targetClass = this.resolveTargetClass(rootParameter, parseResult);
+        // 解析到目标类（传入context以便能够使用XML中的parameterType属性）
+        PsiClass targetClass = this.resolveTargetClass(rootParameter, parseResult, context);
         if (targetClass == null) {
             return;
         }
@@ -152,20 +153,32 @@ public class FieldCompletionStrategy implements CompletionStrategy {
 
     /**
      * 解析目标类
+     * 优化后的实现：支持泛型方法参数的类型解析
+     * 1. 优先从XML的parameterType属性获取类型信息
+     * 2. 如果没有，则从方法参数中获取类型
+     * 3. 对于泛型类型参数，会解析到其边界类型（如 Q extends BaseQuery<?> 会解析到 BaseQuery）
      *
      * @param rootParameter 根参数
      * @param parseResult   解析结果
+     * @param context       补全上下文，用于获取XML元素以读取parameterType属性
      * @return 目标类
      * @since 1.0.0
      */
     private PsiClass resolveTargetClass(@NotNull PsiParameter rootParameter,
-                                        @NotNull MyBatisExpressionParser.ExpressionParseResult parseResult) {
-        PsiClass currentClass = MyBatisUtils.resolveRootParamClass(rootParameter, parseResult.getRootParam());
+                                        @NotNull MyBatisExpressionParser.ExpressionParseResult parseResult,
+                                        @NotNull CompletionContext context) {
+        // 优先使用带context的重载方法，这样可以从XML的parameterType属性获取类型
+        // 这对于泛型方法参数特别重要，因为可以通过parameterType明确指定实际类型
+        PsiClass currentClass = MyBatisUtils.resolveRootParamClass(
+                context.getPosition(),
+                parseResult.getRootParam()
+        );
+
+        // 如果从XML中无法获取类型，回退到从方法参数中获取
         if (currentClass == null) {
-            return null;
+            currentClass = MyBatisUtils.resolveRootParamClass(rootParameter, parseResult.getRootParam());
         }
 
-        currentClass = MyBatisUtils.resolveActualClassFromType(currentClass);
         if (currentClass == null) {
             return null;
         }
@@ -438,8 +451,28 @@ public class FieldCompletionStrategy implements CompletionStrategy {
             int startOffset = insertionContext.getStartOffset();
             int tailOffset = insertionContext.getTailOffset();
 
-            // 先删除IntelliJ刚插入的内容
-            document.deleteString(startOffset, tailOffset);
+            // 确保文档已提交，避免在injected language环境中出现断言错误
+            PsiDocumentManager.getInstance(insertionContext.getProject()).commitDocument(document);
+
+            int documentLength = document.getTextLength();
+
+            // 严格的边界检查
+            if (startOffset > documentLength || tailOffset > documentLength) {
+                // 如果offset无效，使用安全的方式插入
+                this.insertSimpleExpression(document, editor, Math.min(startOffset, documentLength));
+                return;
+            }
+
+            try {
+                // 先删除IntelliJ刚插入的内容
+                if (startOffset < tailOffset) {
+                    document.deleteString(startOffset, tailOffset);
+                }
+            } catch (Exception e) {
+                // 如果删除失败，使用安全的方式插入
+                this.insertSimpleExpression(document, editor, tailOffset);
+                return;
+            }
 
             // 如果在XML属性中
             if (this.isInXmlAttribute) {
@@ -487,24 +520,28 @@ public class FieldCompletionStrategy implements CompletionStrategy {
                 prefixStart = 0;
             }
 
-            // 边界检查
-            if (prefixStart > documentLength || currentOffset > documentLength) {
+            // 严格的边界检查
+            if (prefixStart >= documentLength || currentOffset > documentLength) {
                 // 如果offset无效，直接插入完整路径
-                document.insertString(currentOffset, this.fullPath);
-                editor.getCaretModel().moveToOffset(currentOffset + this.fullPath.length());
+                this.insertSimpleExpression(document, editor, currentOffset);
                 return;
             }
 
-            // 删除前缀
-            if (prefixStart < currentOffset) {
-                document.deleteString(prefixStart, currentOffset);
+            try {
+                // 删除前缀
+                if (prefixStart < currentOffset) {
+                    document.deleteString(prefixStart, currentOffset);
+                }
+
+                // 插入完整路径
+                document.insertString(prefixStart, this.fullPath);
+
+                // 移动光标到插入内容的末尾
+                editor.getCaretModel().moveToOffset(prefixStart + this.fullPath.length());
+            } catch (Exception e) {
+                // 如果操作失败，使用安全的方式插入
+                this.insertSimpleExpression(document, editor, currentOffset);
             }
-
-            // 插入完整路径
-            document.insertString(prefixStart, this.fullPath);
-
-            // 移动光标到插入内容的末尾
-            editor.getCaretModel().moveToOffset(prefixStart + this.fullPath.length());
         }
 
         /**

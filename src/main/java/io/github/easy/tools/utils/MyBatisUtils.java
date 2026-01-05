@@ -14,7 +14,9 @@ import com.intellij.psi.PsiLiteralExpression;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiParameter;
 import com.intellij.psi.PsiReferenceList;
+import com.intellij.psi.PsiType;
 import com.intellij.psi.PsiTypeParameter;
+import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PropertyUtilBase;
 import com.intellij.psi.util.PsiTypesUtil;
 import com.intellij.psi.xml.XmlFile;
@@ -239,6 +241,7 @@ public final class MyBatisUtils {
 
     /**
      * 解析参数对应的 Java 类 (PsiClass)。
+     * 支持泛型方法中的类型参数解析，会尝试从方法声明中推断实际类型。
      *
      * @param parameter parameter
      * @param paramName param name
@@ -246,7 +249,213 @@ public final class MyBatisUtils {
      * @since 1.1.0
      */
     public static @Nullable PsiClass resolveRootParamClass(@NotNull PsiParameter parameter, @NotNull String paramName) {
-        return PsiTypesUtil.getPsiClass(parameter.getType());
+        PsiClass psiClass = PsiTypesUtil.getPsiClass(parameter.getType());
+        if (psiClass == null) {
+            return null;
+        }
+
+        // 如果是泛型类型参数（如 Q extends BaseQuery<?>），尝试推断其实际类型
+        if (psiClass instanceof PsiTypeParameter) {
+            // 尝试从 Mapper 接口的泛型参数推断实际类型
+            PsiMethod method = (PsiMethod) parameter.getDeclarationScope();
+            PsiClass inferredClass = inferGenericTypeFromMapper(method, parameter);
+            if (inferredClass != null) {
+                return inferredClass;
+            }
+
+            // 如果无法推断，则使用边界类型
+            return resolveActualClassFromType(psiClass);
+        }
+
+        return psiClass;
+    }
+
+    /**
+     * 从 Mapper 接口的泛型参数推断方法泛型参数的实际类型
+     * 例如：AlarmConfigMapper extends BaseDao<AlarmConfig>
+     * 对于方法 page(@Param("query") Q query)，其中 Q extends BaseQuery<?>
+     * 会推断出实际类型应该是 AlarmConfigQuery
+     *
+     * @param method    方法
+     * @param parameter 参数
+     * @return 推断出的类型，如果无法推断返回 null
+     * @since 1.1.0
+     */
+    private static @Nullable PsiClass inferGenericTypeFromMapper(@NotNull PsiMethod method, @NotNull PsiParameter parameter) {
+        PsiClass containingClass = method.getContainingClass();
+        if (containingClass == null) {
+            return null;
+        }
+
+        // 查找定义该方法的接口或父接口
+        PsiClass definingClass = findDefiningClass(containingClass, method);
+        if (definingClass == null) {
+            return null;
+        }
+
+        // 如果方法是在当前类定义的，无法推断
+        if (definingClass.equals(containingClass)) {
+            return null;
+        }
+
+        // 获取 containingClass 中对应 definingClass 的泛型参数
+        PsiClass entityClass = findEntityTypeFromMapper(containingClass, definingClass);
+        if (entityClass == null) {
+            return null;
+        }
+
+        // 根据参数的泛型边界和实体类推断实际类型
+        return inferQueryTypeFromEntity(entityClass, parameter, method.getProject());
+    }
+
+    /**
+     * 查找定义该方法的类或接口
+     *
+     * @param startClass 起始类
+     * @param method     方法
+     * @return 定义该方法的类，如果未找到返回 null
+     * @since 1.1.0
+     */
+    private static @Nullable PsiClass findDefiningClass(@NotNull PsiClass startClass, @NotNull PsiMethod method) {
+        // 先检查当前类
+        for (PsiMethod m : startClass.getMethods()) {
+            if (m.equals(method)) {
+                return startClass;
+            }
+        }
+
+        // 检查父类和接口
+        for (PsiClass superClass : startClass.getSupers()) {
+            PsiClass found = findDefiningClass(superClass, method);
+            if (found != null) {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 从 Mapper 接口中查找实体类型
+     * 例如：AlarmConfigMapper extends BaseDao<AlarmConfig>
+     * 返回 AlarmConfig
+     *
+     * @param mapperClass   Mapper 类
+     * @param definingClass 定义方法的类（如 BaseDao）
+     * @return 实体类型，如果未找到返回 null
+     * @since 1.1.0
+     */
+    private static @Nullable PsiClass findEntityTypeFromMapper(@NotNull PsiClass mapperClass, @NotNull PsiClass definingClass) {
+        // 遍历 mapperClass 的父类和接口
+        for (PsiClassType superType : mapperClass.getSuperTypes()) {
+            PsiClass superClass = superType.resolve();
+            if (superClass == null) {
+                continue;
+            }
+
+            // 如果找到了 definingClass
+            if (superClass.equals(definingClass) || superClass.isInheritor(definingClass, true)) {
+                // 获取泛型参数
+                PsiType[] typeParameters = superType.getParameters();
+                if (typeParameters.length > 0) {
+                    // 假设第一个泛型参数是实体类型（如 BaseDao<T> 中的 T）
+                    return PsiTypesUtil.getPsiClass(typeParameters[0]);
+                }
+            }
+
+            // 递归查找
+            PsiClass found = findEntityTypeFromMapper(superClass, definingClass);
+            if (found != null) {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 根据实体类推断查询类型
+     * 命名约定：AlarmConfig -> AlarmConfigQuery
+     *
+     * @param entityClass 实体类
+     * @param parameter   参数
+     * @param project     项目
+     * @return 查询类型，如果未找到返回 null
+     * @since 1.1.0
+     */
+    private static @Nullable PsiClass inferQueryTypeFromEntity(@NotNull PsiClass entityClass,
+                                                               @NotNull PsiParameter parameter,
+                                                               @NotNull Project project) {
+        String entityClassName = entityClass.getName();
+        if (entityClassName == null) {
+            return null;
+        }
+
+        // 获取实体类的包名
+        String qualifiedName = entityClass.getQualifiedName();
+        if (qualifiedName == null) {
+            return null;
+        }
+
+        String packageName = qualifiedName.substring(0, qualifiedName.lastIndexOf('.'));
+
+        // 根据参数类型的边界推断后缀
+        PsiType paramType = parameter.getType();
+        PsiClass paramClass = PsiTypesUtil.getPsiClass(paramType);
+        if (paramClass instanceof PsiTypeParameter typeParam) {
+            // 获取泛型边界
+            PsiReferenceList extendsList = typeParam.getExtendsList();
+            PsiClassType[] boundTypes = extendsList.getReferencedTypes();
+
+            if (boundTypes.length > 0) {
+                PsiClass boundClass = boundTypes[0].resolve();
+                if (boundClass != null) {
+                    String boundClassName = boundClass.getName();
+
+                    // 根据边界类型推断后缀
+                    String suffix = null;
+                    if (boundClassName != null) {
+                        if (boundClassName.endsWith("Query")) {
+                            suffix = "Query";
+                        } else if (boundClassName.endsWith("DTO")) {
+                            suffix = "DTO";
+                        } else if (boundClassName.endsWith("VO")) {
+                            suffix = "VO";
+                        } else if (boundClassName.endsWith("Request")) {
+                            suffix = "Request";
+                        }
+                    }
+
+                    if (suffix != null) {
+                        // 尝试在相同包和常见包中查找
+                        String[] candidatePackages = {
+                            packageName,
+                            packageName + ".query",
+                            packageName + ".dto",
+                            packageName + ".vo",
+                            packageName + ".request",
+                            packageName.replace(".entity", ".query"),
+                            packageName.replace(".entity", ".dto"),
+                            packageName.replace(".model", ".query"),
+                            packageName.replace(".model", ".dto")
+                        };
+
+                        String targetClassName = entityClassName + suffix;
+                        GlobalSearchScope scope = GlobalSearchScope.allScope(project);
+
+                        for (String pkg : candidatePackages) {
+                            String fqn = pkg + "." + targetClassName;
+                            PsiClass found = JavaPsiFacade.getInstance(project).findClass(fqn, scope);
+                            if (found != null) {
+                                return found;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 
     /**

@@ -4,6 +4,7 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileDocumentManagerListener;
+import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -77,8 +78,13 @@ public class FileSaveListener implements FileDocumentManagerListener {
         if (projects.length == 0) {
             return;
         }
-        
+
         Project project = projects[0]; // 使用第一个打开的项目
+
+        // 检查文件是否在编辑器中打开
+        if (!FileEditorManager.getInstance(project).isFileOpen(virtualFile)) {
+            return;
+        }
 
         // 检查是否启用保存监听器（根据项目配置）
         if (!DocConfigService.getInstance(project).saveListener) {

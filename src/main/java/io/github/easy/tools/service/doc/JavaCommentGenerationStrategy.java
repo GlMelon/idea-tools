@@ -728,6 +728,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
          * 支持解析形如 ${version} 的占位符,会从 properties 节点中读取对应的值。
          * 如果版本号包含 ${propertyName} 格式的占位符,会递归解析直到获得最终值。
          * 支持向上查找父模块的pom.xml中的属性定义。
+         * 排除 parent 标签内的 version，只读取项目自身的 version。
          * </p>
          *
          * @param pomContent pom.xml 文件内容
@@ -738,11 +739,33 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
         private String extractVersionFromPom(String pomContent, VirtualFile pomFile) {
             String version = "1.0.0";
             try {
-                // 简单的 XML 解析，提取 <version> 标签内容
-                int versionStart = pomContent.indexOf("<version>");
-                if (versionStart != -1) {
+                // 查找 <parent> 标签的位置（如果存在）
+                int parentStart = pomContent.indexOf("<parent>");
+                int parentEnd = -1;
+                if (parentStart != -1) {
+                    parentEnd = pomContent.indexOf("</parent>", parentStart);
+                }
+
+                // 查找 <version> 标签
+                int searchFrom = 0;
+                while (true) {
+                    int versionStart = pomContent.indexOf("<version>", searchFrom);
+                    if (versionStart == -1) {
+                        break;
+                    }
+
                     int versionEnd = pomContent.indexOf("</version>", versionStart);
-                    if (versionEnd != -1) {
+                    if (versionEnd == -1) {
+                        break;
+                    }
+
+                    // 检查这个 <version> 是否在 <parent> 标签内
+                    boolean inParent = parentStart != -1 && parentEnd != -1
+                            && versionStart > parentStart
+                            && versionEnd < parentEnd;
+
+                    if (!inParent) {
+                        // 找到了不在 parent 内的 version，这才是项目的 version
                         version = pomContent.substring(
                                 versionStart + "<version>".length(),
                                 versionEnd
@@ -750,7 +773,11 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
 
                         // 检查是否包含占位符 ${propertyName},支持向上查找父模块
                         version = this.resolvePlaceholder(version, pomContent, pomFile);
+                        break;
                     }
+
+                    // 如果这个 version 在 parent 内，继续查找下一个
+                    searchFrom = versionEnd + "</version>".length();
                 }
             } catch (Exception e) {
                 // 如果解析失败，使用默认版本号

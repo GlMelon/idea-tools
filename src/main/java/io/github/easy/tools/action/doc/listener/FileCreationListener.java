@@ -1,6 +1,7 @@
 package io.github.easy.tools.action.doc.listener;
 
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -91,10 +92,15 @@ public class FileCreationListener implements BulkFileListener {
                 if (openProjects.length == 0) {
                     return;
                 }
-                
+
                 // 使用第一个打开的项目
                 Project project = openProjects[0];
-                
+
+                // 检查文件是否在编辑器中打开
+                if (!FileEditorManager.getInstance(project).isFileOpen(file)) {
+                    return;
+                }
+
                 // 再次延迟,确保PSI完全初始化
                 ApplicationManager.getApplication().invokeLater(() -> {
                     ApplicationManager.getApplication().runWriteAction(() -> {

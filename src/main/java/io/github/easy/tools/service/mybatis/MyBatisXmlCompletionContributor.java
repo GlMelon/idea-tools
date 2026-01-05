@@ -23,6 +23,7 @@ import com.intellij.util.ProcessingContext;
 import io.github.easy.tools.service.mybatis.completion.CompletionContext;
 import io.github.easy.tools.service.mybatis.completion.CompletionStrategyManager;
 import io.github.easy.tools.service.mybatis.expression.MyBatisExpressionParser;
+import io.github.easy.tools.ui.config.FeatureToggleService;
 import io.github.easy.tools.utils.MyBatisUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -181,6 +182,11 @@ public class MyBatisXmlCompletionContributor extends CompletionContributor {
                                       @NotNull CompletionResultSet result) {
             PsiElement position = parameters.getPosition();
             Project project = position.getProject();
+
+            // 检查MyBatis XML代码补全功能是否启用
+            if (!FeatureToggleService.getInstance().isMybatisXmlCompletionEnabled()) {
+                return;
+            }
 
             // 使用InjectedLanguageManager获取顶层元素,解决其他插件包装的问题
             InjectedLanguageManager injectedManager = InjectedLanguageManager.getInstance(project);
