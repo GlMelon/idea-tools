@@ -104,6 +104,16 @@ public class DocConfig implements Configurable {
     private JTextArea fieldPrompt;
 
     /**
+     * 包模板文本框
+     */
+    private JTextArea packageTemplate;
+
+    /**
+     * 包AI提示词文本框
+     */
+    private JTextArea packagePrompt;
+
+    /**
      * 模板类型切换面板
      */
     private JPanel templateCardPanel;
@@ -232,6 +242,8 @@ public class DocConfig implements Configurable {
                 !Objects.equals(this.classPrompt.getText(), config.classPrompt) ||
                 !Objects.equals(this.methodPrompt.getText(), config.methodPrompt) ||
                 !Objects.equals(this.fieldPrompt.getText(), config.fieldPrompt) ||
+                !Objects.equals(this.packageTemplate.getText(), config.packageTemplate) ||
+                !Objects.equals(this.packagePrompt.getText(), config.packagePrompt) ||
                 this.isCustomVarsModified(config) ||
                 this.saveListener.isSelected() != config.saveListener ||
                 this.nonStandardDoc.isSelected() != config.nonStandardDoc;
@@ -260,11 +272,13 @@ public class DocConfig implements Configurable {
         config.classTemplate = this.classTemplate.getText();
         config.methodTemplate = this.methodTemplate.getText();
         config.fieldTemplate = this.fieldTemplate.getText();
+        config.packageTemplate = this.packageTemplate.getText();
 
         // 保存AI提示词
         config.classPrompt = this.classPrompt.getText();
         config.methodPrompt = this.methodPrompt.getText();
         config.fieldPrompt = this.fieldPrompt.getText();
+        config.packagePrompt = this.packagePrompt.getText();
 
         config.nonStandardDoc = this.nonStandardDoc.isSelected();
 
@@ -421,6 +435,13 @@ public class DocConfig implements Configurable {
         this.fieldTemplate = (JTextArea) ((JBScrollPane) fieldPanel.getComponent(0)).getViewport().getView();
         panel.add(fieldPanel, gbc);
 
+        // 包模板
+        gbc.gridy = 3;
+        gbc.weighty = 0.15;
+        JPanel packagePanel = this.createTemplateSection("包模板", 150);
+        this.packageTemplate = (JTextArea) ((JBScrollPane) packagePanel.getComponent(0)).getViewport().getView();
+        panel.add(packagePanel, gbc);
+
         return panel;
     }
 
@@ -441,24 +462,31 @@ public class DocConfig implements Configurable {
         // 类注释提示词
         gbc.gridx = 0;
         gbc.gridy = 0;
-        gbc.weighty = 0.33;
+        gbc.weighty = 0.25;
         JPanel classPromptPanel = this.createTemplateSection("类注释提示词", 150);
         this.classPrompt = (JTextArea) ((JBScrollPane) classPromptPanel.getComponent(0)).getViewport().getView();
         panel.add(classPromptPanel, gbc);
 
         // 方法注释提示词
         gbc.gridy = 1;
-        gbc.weighty = 0.33;
+        gbc.weighty = 0.25;
         JPanel methodPromptPanel = this.createTemplateSection("方法注释提示词", 150);
         this.methodPrompt = (JTextArea) ((JBScrollPane) methodPromptPanel.getComponent(0)).getViewport().getView();
         panel.add(methodPromptPanel, gbc);
 
         // 字段注释提示词
         gbc.gridy = 2;
-        gbc.weighty = 0.34;
+        gbc.weighty = 0.25;
         JPanel fieldPromptPanel = this.createTemplateSection("字段注释提示词", 150);
         this.fieldPrompt = (JTextArea) ((JBScrollPane) fieldPromptPanel.getComponent(0)).getViewport().getView();
         panel.add(fieldPromptPanel, gbc);
+
+        // 包注释提示词
+        gbc.gridy = 3;
+        gbc.weighty = 0.25;
+        JPanel packagePromptPanel = this.createTemplateSection("包注释提示词", 150);
+        this.packagePrompt = (JTextArea) ((JBScrollPane) packagePromptPanel.getComponent(0)).getViewport().getView();
+        panel.add(packagePromptPanel, gbc);
 
         return panel;
     }
@@ -603,6 +631,12 @@ public class DocConfig implements Configurable {
         fieldNode.add(new DefaultMutableTreeNode("fieldType: 字段类型"));
         root.add(fieldNode);
 
+        // 包特有参数
+        DefaultMutableTreeNode packageNode = new DefaultMutableTreeNode("包特有参数");
+        packageNode.add(new DefaultMutableTreeNode("packageName: 包名称"));
+        packageNode.add(new DefaultMutableTreeNode("description: 包描述（默认为包名最后一部分）"));
+        root.add(packageNode);
+
         this.builtInVarsTree = new JTree(root);
         this.builtInVarsTree.setRootVisible(true);
 
@@ -682,11 +716,13 @@ public class DocConfig implements Configurable {
         this.classTemplate.setText(config.classTemplate);
         this.methodTemplate.setText(config.methodTemplate);
         this.fieldTemplate.setText(config.fieldTemplate);
+        this.packageTemplate.setText(config.packageTemplate);
 
         // 加载AI提示词
         this.classPrompt.setText(config.classPrompt);
         this.methodPrompt.setText(config.methodPrompt);
         this.fieldPrompt.setText(config.fieldPrompt);
+        this.packagePrompt.setText(config.packagePrompt);
 
         // 加载自定义变量到表格
         this.customVarTableModel.setRowCount(0);
@@ -731,6 +767,7 @@ public class DocConfig implements Configurable {
         this.classTemplate.getDocument().addDocumentListener(documentListener);
         this.methodTemplate.getDocument().addDocumentListener(documentListener);
         this.fieldTemplate.getDocument().addDocumentListener(documentListener);
+        this.packageTemplate.getDocument().addDocumentListener(documentListener);
 
         this.customVarTableModel.addTableModelListener(e -> this.isModified = true);
         this.saveListener.addActionListener(e -> this.isModified = true);

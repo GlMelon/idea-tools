@@ -10,6 +10,7 @@ import com.intellij.psi.PsiElementFactory;
 import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiJavaDocumentedElement;
 import com.intellij.psi.PsiMethod;
+import com.intellij.psi.PsiPackageStatement;
 import com.intellij.psi.javadoc.PsiDocComment;
 import io.github.easy.tools.constants.PromptConstants;
 import io.github.easy.tools.ui.config.DocConfigService;
@@ -64,6 +65,10 @@ public class AICommentProcessor {
             return StringUtil.isNotEmpty(config.fieldPrompt)
                     ? config.fieldPrompt
                     : PromptConstants.DEFAULT_FIELD_PROMPT;
+        } else if (element instanceof PsiPackageStatement) {
+            return StringUtil.isNotEmpty(config.packagePrompt)
+                    ? config.packagePrompt
+                    : PromptConstants.DEFAULT_PACKAGE_PROMPT;
         }
         return "";
     }

@@ -90,6 +90,10 @@ public final class DocConfigService implements PersistentStateComponent<DocConfi
      * PARAM EMAIL
      */
     public static final String PARAM_EMAIL = "email";
+    /**
+     * PARAM PACKAGE NAME
+     */
+    public static final String PARAM_PACKAGE_NAME = "packageName";
 
 
 
@@ -144,6 +148,23 @@ public final class DocConfigService implements PersistentStateComponent<DocConfi
             """;
 
     /**
+     * DEFAULT PACKAGE TEMPLATE
+     */
+    public static final String DEFAULT_PACKAGE_TEMPLATE = """
+            /**
+             * ${description}
+             *
+             * @author ${author}
+             #if( $email && $email != "" )
+             * @email "mailto:${email}"
+             #end
+             * @date ${date}
+             * @version ${version}
+             * @since ${since}
+             */
+            """;
+
+    /**
      * 类注释模板
      */
     public String classTemplate = DEFAULT_CLASS_TEMPLATE;
@@ -157,6 +178,11 @@ public final class DocConfigService implements PersistentStateComponent<DocConfi
      * 字段注释模板
      */
     public String fieldTemplate = DEFAULT_FIELD_TEMPLATE;
+
+    /**
+     * 包注释模板
+     */
+    public String packageTemplate = DEFAULT_PACKAGE_TEMPLATE;
 
     /**
      * 自定义变量字符串形式
@@ -192,6 +218,11 @@ public final class DocConfigService implements PersistentStateComponent<DocConfi
      * AI字段注释生成提示词模板
      */
     public String fieldPrompt = PromptConstants.DEFAULT_FIELD_PROMPT;
+
+    /**
+     * AI包注释生成提示词模板
+     */
+    public String packagePrompt = PromptConstants.DEFAULT_PACKAGE_PROMPT;
 
     /**
      * 自定义变量实体，用于持久化存储自定义变量的名称、描述和值

@@ -18,6 +18,8 @@ import com.intellij.psi.PsiJavaDocumentedElement;
 import com.intellij.psi.PsiMember;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiModifierList;
+import com.intellij.psi.PsiJavaFile;
+import com.intellij.psi.PsiPackageStatement;
 import com.intellij.psi.PsiParameter;
 import com.intellij.psi.PsiParserFacade;
 import com.intellij.psi.PsiTypeParameter;
@@ -129,6 +131,8 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
                     return new MethodDocHandler();
                 case "field":
                     return new FieldDocHandler();
+                case "package":
+                    return new PackageDocHandler();
                 default:
                     throw new IllegalArgumentException("Unsupported element type: " + k);
             }
@@ -246,6 +250,8 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
             handler = this.getDocHandler("method");
         } else if (element instanceof PsiField) {
             handler = this.getDocHandler("field");
+        } else if (element instanceof PsiPackageStatement) {
+            handler = this.getDocHandler("package");
         }
 
         if (handler != null) {
@@ -294,6 +300,8 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
             handler = this.getDocHandler("method");
         } else if (element instanceof PsiField) {
             handler = this.getDocHandler("field");
+        } else if (element instanceof PsiPackageStatement) {
+            handler = this.getDocHandler("package");
         }
 
         if (handler == null) {
@@ -368,6 +376,8 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
             return config.methodTemplate;
         } else if (element instanceof PsiField) {
             return config.fieldTemplate;
+        } else if (element instanceof PsiPackageStatement) {
+            return config.packageTemplate;
         }
         return "";
     }
@@ -411,7 +421,7 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
 
         // 递归处理所有子元素
         for (PsiElement child : element.getChildren()) {
-            if (child instanceof PsiClass || child instanceof PsiMethod || child instanceof PsiField) {
+            if (child instanceof PsiClass || child instanceof PsiMethod || child instanceof PsiField || child instanceof PsiPackageStatement) {
                 this.generateCommentsRecursively(child, overwrite, useAi);
             }
         }
@@ -1163,6 +1173,69 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
             context.put(DocConfigService.PARAM_FIELD_NAME, element.getName());
             // 添加字段类型信息
             context.put(DocConfigService.PARAM_FIELD_TYPE, element.getType().getPresentableText());
+        }
+    }
+
+    /**
+     * 包文档处理器，处理package-info.java文件的包注释生成
+     *
+     * @author haijun
+     * @version 1.0.0
+     * @since 1.0.0
+     */
+    private static class PackageDocHandler extends AbstractDocHandler<PsiPackageStatement> {
+
+        /**
+         * 执行包文档生成
+         *
+         * @param file    文件
+         * @param element 包声明元素
+         * @param context 上下文
+         * @return 包模板内容
+         * @since 1.0.0
+         */
+        @Override
+        protected String doGenerateDoc(PsiFile file, PsiPackageStatement element, Context context) {
+            DocConfigService cfg = DocConfigService.getInstance(file.getProject());
+            return VELOCITY_RENDERER.render(cfg.packageTemplate, context, element);
+        }
+
+        /**
+         * 添加包元素特定参数到上下文
+         *
+         * @param context Velocity上下文
+         * @param element 包声明元素
+         * @since 1.0.0
+         */
+        @Override
+        protected void addElementSpecificParameters(VelocityContext context, PsiPackageStatement element) {
+            // 获取包名称并格式化
+            String packageName = element.getPackageName();
+            context.put(DocConfigService.PARAM_PACKAGE_NAME, packageName);
+            // 将包名转换为描述（类似类名的处理方式）
+            String formattedPackageDesc = this.formatPackageName(packageName);
+            context.put(DocConfigService.PARAM_DESCRIPTION, formattedPackageDesc);
+        }
+
+        /**
+         * 格式化包名为描述
+         *
+         * @param packageName 包名
+         * @return 格式化后的描述
+         * @since 1.0.0
+         */
+        private String formatPackageName(String packageName) {
+            if (StringUtil.isEmpty(packageName)) {
+                return "";
+            }
+            // 将包名的最后一部分作为描述
+            String[] parts = packageName.split("\\.");
+            if (parts.length > 0) {
+                String lastPart = parts[parts.length - 1];
+                // 转换为首字母大写并添加空格
+                return StrConverter.firstUpperConverter(lastPart);
+            }
+            return packageName;
         }
     }
 }
