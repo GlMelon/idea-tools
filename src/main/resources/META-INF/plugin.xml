@@ -82,6 +82,24 @@
                                 order="first"
                                 id="io.github.easy.tools.mybatis.completion"
                                 implementationClass="io.github.easy.tools.service.mybatis.MyBatisXmlCompletionContributor"/>
+
+        <!-- 注册MyBatis意图操作，用于Ctrl+回车菜单 -->
+        <intentionAction>
+            <className>io.github.easy.tools.intention.MyBatisSelectIntention</className>
+            <category>MyBatis</category>
+        </intentionAction>
+        <intentionAction>
+            <className>io.github.easy.tools.intention.MyBatisInsertIntention</className>
+            <category>MyBatis</category>
+        </intentionAction>
+        <intentionAction>
+            <className>io.github.easy.tools.intention.MyBatisUpdateIntention</className>
+            <category>MyBatis</category>
+        </intentionAction>
+        <intentionAction>
+            <className>io.github.easy.tools.intention.MyBatisDeleteIntention</className>
+            <category>MyBatis</category>
+        </intentionAction>
     </extensions>
 
     <!-- Plugin metadata -->
