@@ -7,6 +7,7 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiMethod;
+import com.intellij.psi.PsiPackageStatement;
 import com.intellij.psi.PsiWhiteSpace;
 import com.intellij.psi.impl.source.tree.java.PsiIdentifierImpl;
 import com.intellij.psi.javadoc.PsiDocComment;
@@ -44,12 +45,13 @@ public abstract class AbstractEasyDocAction extends AnAction {
     }
 
     /**
-     * Java元素类型列表，包括文档注释、类、方法和字段
+     * Java元素类型列表，包括文档注释、类、方法、字段和包声明
      */
     private static final List<Class<?>> JAVA_ELEMENTS = List.of(PsiDocComment.class,
             PsiClass.class,
             PsiMethod.class,
-            PsiField.class);
+            PsiField.class,
+            PsiPackageStatement.class);
 
     /**
      * 根据文件类型获取对应的注释处理器
@@ -155,6 +157,17 @@ public abstract class AbstractEasyDocAction extends AnAction {
             if (parent instanceof PsiClass) {
                 return parent;
             }
+            // 特殊处理：如果是 package-info.java 中的 package 语句
+            if (parent instanceof PsiPackageStatement) {
+                return parent;
+            }
+        }
+
+        // 特殊处理：直接检查父元素是否为 PsiPackageStatement
+        // 这种情况发生在光标在 package 关键字上时
+        PsiElement parent = element != null ? element.getParent() : null;
+        if (parent instanceof PsiPackageStatement) {
+            return parent;
         }
 
         // 跳过空白字符

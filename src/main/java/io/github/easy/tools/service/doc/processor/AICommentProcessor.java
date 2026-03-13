@@ -8,9 +8,11 @@ import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementFactory;
 import com.intellij.psi.PsiField;
+import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaDocumentedElement;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiPackageStatement;
+import com.intellij.psi.PsiParserFacade;
 import com.intellij.psi.javadoc.PsiDocComment;
 import io.github.easy.tools.constants.PromptConstants;
 import io.github.easy.tools.ui.config.DocConfigService;
@@ -91,8 +93,23 @@ public class AICommentProcessor {
             WriteCommandAction.runWriteCommandAction(project, () -> {
                 // 创建新的文档注释
                 PsiElementFactory elementFactory = JavaPsiFacade.getElementFactory(project);
-                String sanitized = this.sanitizeGenerics(commentText);
+                // 先规范化注释格式，再处理泛型
+                String normalized = this.normalizeJavaDocFormat(commentText);
+                String sanitized = this.sanitizeGenerics(normalized);
+
+                // 验证注释格式是否正确
+                if (!this.isValidJavaDocFormat(sanitized)) {
+                    // 如果格式不正确，尝试修复
+                    sanitized = this.fixJavaDocFormat(sanitized);
+                }
+
                 PsiElement docCommentFromText = elementFactory.createDocCommentFromText(sanitized);
+
+                // 特殊处理 PsiPackageStatement（package-info.java 文件中的包声明）
+                if (element instanceof PsiPackageStatement psiPackageStatement) {
+                    this.updatePackageDoc(psiPackageStatement, docCommentFromText, project);
+                    return;
+                }
 
                 // 获取现有的文档注释
                 PsiDocComment existingDocComment = null;
@@ -113,6 +130,170 @@ public class AICommentProcessor {
     }
 
     /**
+     * 更新 package-info.java 文件中的包注释
+     * <p>
+     * PsiPackageStatement 不是 PsiJavaDocumentedElement 的子类，需要特殊处理。
+     * 检查文件开头是否有现有的注释，如果有则替换，否则在 package 语句之前添加。
+     * </p>
+     *
+     * @param packageStatement  包声明元素
+     * @param docCommentFromText 新的文档注释
+     * @param project           项目实例
+     * @since 1.0.0
+     */
+    private void updatePackageDoc(PsiPackageStatement packageStatement, PsiElement docCommentFromText, Project project) {
+        PsiFile containingFile = packageStatement.getContainingFile();
+        if (containingFile == null) {
+            return;
+        }
+
+        // 检查文件开头是否有现有的 PsiDocComment
+        PsiElement firstChild = containingFile.getFirstChild();
+        if (firstChild instanceof PsiDocComment existingDoc) {
+            // 替换已存在的注释
+            existingDoc.replace(docCommentFromText);
+        } else {
+            // 在文件开头（package 语句之前）添加新注释
+            containingFile.addBefore(docCommentFromText, packageStatement);
+
+            // 在注释和 package 语句之间添加换行符
+            PsiElement whiteSpace = PsiParserFacade.getInstance(project).createWhiteSpaceFromText("\n");
+            containingFile.addBefore(whiteSpace, packageStatement);
+        }
+    }
+
+    /**
+     * 规范化JavaDoc注释格式
+     * <p>
+     * 确保注释以 /** 开始，以 *&#47; 结束
+     * 修复常见的格式问题
+     * </p>
+     *
+     * @param commentText 注释文本
+     * @return 规范化后的注释文本
+     * @since 1.0.0
+     */
+    private String normalizeJavaDocFormat(String commentText) {
+        if (StringUtil.isEmpty(commentText)) {
+            return commentText;
+        }
+
+        String trimmed = commentText.trim();
+
+        // 如果注释已经以 /** 开始和 */ 结束，直接返回
+        if (trimmed.startsWith("/**") && trimmed.endsWith("*/")) {
+            return trimmed;
+        }
+
+        // 如果只有 /** 开始但没有 */ 结束，添加结束标记
+        if (trimmed.startsWith("/**") && !trimmed.endsWith("*/")) {
+            // 确保最后一行有 * 前缀
+            if (!trimmed.endsWith("\n *")) {
+                return trimmed + "\n */";
+            }
+            return trimmed + "/";
+        }
+
+        // 如果没有 /** 开始但有 */ 结束，添加开始标记
+        if (!trimmed.startsWith("/**") && trimmed.endsWith("*/")) {
+            return "/**\n * " + trimmed.substring(0, trimmed.length() - 2).trim() + "\n */";
+        }
+
+        // 如果都没有，包装成JavaDoc格式
+        return this.wrapAsJavaDoc(trimmed);
+    }
+
+    /**
+     * 验证JavaDoc注释格式是否正确
+     *
+     * @param commentText 注释文本
+     * @return 是否是有效的JavaDoc格式
+     * @since 1.0.0
+     */
+    private boolean isValidJavaDocFormat(String commentText) {
+        if (StringUtil.isEmpty(commentText)) {
+            return false;
+        }
+
+        String trimmed = commentText.trim();
+
+        // 必须以 /** 开始
+        if (!trimmed.startsWith("/**")) {
+            return false;
+        }
+
+        // 必须以 */ 结束
+        if (!trimmed.endsWith("*/")) {
+            return false;
+        }
+
+        // 检查是否有未闭合的标签（简单检查）
+        // 确保没有单独的 @email 后面没有值导致的问题
+        String[] lines = trimmed.split("\n");
+        for (String line : lines) {
+            String trimmedLine = line.trim();
+            // 检查是否是空的 @email 或 @param 标签
+            if (trimmedLine.matches("^\\*\\s*@(email|author|date|version|since)\\s*$")) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * 修复JavaDoc注释格式
+     *
+     * @param commentText 注释文本
+     * @return 修复后的注释文本
+     * @since 1.0.0
+     */
+    private String fixJavaDocFormat(String commentText) {
+        if (StringUtil.isEmpty(commentText)) {
+            return "/**\n *\n */";
+        }
+
+        StringBuilder result = new StringBuilder();
+        result.append("/**\n");
+
+        String[] lines = commentText.split("\n");
+        for (String line : lines) {
+            String trimmedLine = line.trim();
+
+            // 跳过 /** 和 */ 行
+            if (trimmedLine.equals("/**") || trimmedLine.equals("*/")) {
+                continue;
+            }
+
+            // 移除开头的 *
+            if (trimmedLine.startsWith("*")) {
+                trimmedLine = trimmedLine.substring(1).trim();
+            }
+
+            // 修复空的标签值
+            if (trimmedLine.matches("^@(email|author|date|version|since)\\s*$")) {
+                // 为空标签添加默认值
+                if (trimmedLine.startsWith("@email")) {
+                    trimmedLine = "@email \"mailto:unknown@email.com\"";
+                } else if (trimmedLine.startsWith("@author")) {
+                    trimmedLine = "@author unknown";
+                } else if (trimmedLine.startsWith("@date")) {
+                    trimmedLine = "@date " + java.time.LocalDate.now().toString();
+                } else if (trimmedLine.startsWith("@version")) {
+                    trimmedLine = "@version 1.0.0";
+                } else if (trimmedLine.startsWith("@since")) {
+                    trimmedLine = "@since 1.0.0";
+                }
+            }
+
+            result.append(" * ").append(trimmedLine).append("\n");
+        }
+
+        result.append(" */");
+        return result.toString();
+    }
+
+    /**
      * 从AI响应中提取标准JavaDoc注释内容
      * <p>
      * 处理流程：
@@ -121,6 +302,7 @@ public class AICommentProcessor {
      * - 移除代码块标记
      * - 提取JavaDoc格式注释
      * - 如果没有标准格式则包装为JavaDoc注释
+     * - 规范化并验证注释格式
      * </p>
      *
      * @param responseContent AI响应内容
@@ -146,7 +328,8 @@ public class AICommentProcessor {
         // 提取JavaDoc注释
         String javaDocComment = this.extractJavaDocComment(responseContent);
         if (StringUtil.isNotEmpty(javaDocComment)) {
-            return javaDocComment;
+            // 规范化注释格式
+            return this.normalizeJavaDocFormat(javaDocComment);
         }
 
         // 如果没有找到标准格式，包装成JavaDoc注释

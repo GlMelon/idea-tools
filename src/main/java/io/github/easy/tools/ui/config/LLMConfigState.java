@@ -13,6 +13,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * LLM配置状态服务类
@@ -90,6 +91,59 @@ public final class LLMConfigState implements PersistentStateComponent<LLMConfigS
          * 是否开启思考模式
          */
         public boolean enableReasoning = false;
+
+        /**
+         * 获取有效的baseUrl
+         * <p>
+         * 如果用户配置了自定义baseUrl，则使用用户的配置；
+         * 否则根据模型类型返回对应的默认baseUrl
+         * </p>
+         *
+         * @param modelType 模型类型
+         * @return 有效的baseUrl
+         */
+        public String getEffectiveBaseUrl(String modelType) {
+            // 如果用户配置了自定义baseUrl（非空且非空白），则使用用户的配置
+            if (baseUrl != null && !baseUrl.trim().isEmpty()) {
+                return baseUrl.trim();
+            }
+            // 否则返回该模型类型的默认baseUrl
+            return getDefaultBaseUrlByModelType(modelType);
+        }
+
+        /**
+         * 根据模型类型获取默认的baseUrl
+         *
+         * @param modelType 模型类型
+         * @return 默认baseUrl
+         */
+        private static String getDefaultBaseUrlByModelType(String modelType) {
+            if (modelType == null) {
+                return LLMConstants.DefaultBaseUrl.OPENAI;
+            }
+            switch (modelType) {
+                case LLMConstants.ModelType.OPENAI:
+                    return LLMConstants.DefaultBaseUrl.OPENAI;
+                case LLMConstants.ModelType.CLAUDE:
+                    return LLMConstants.DefaultBaseUrl.CLAUDE;
+                case LLMConstants.ModelType.GEMINI:
+                    return LLMConstants.DefaultBaseUrl.GEMINI;
+                case LLMConstants.ModelType.DEEPSEEK:
+                    return LLMConstants.DefaultBaseUrl.DEEPSEEK;
+                case LLMConstants.ModelType.QWEN:
+                    return LLMConstants.DefaultBaseUrl.QWEN;
+                case LLMConstants.ModelType.GLM:
+                    return LLMConstants.DefaultBaseUrl.GLM;
+                case LLMConstants.ModelType.WENXIN:
+                    return LLMConstants.DefaultBaseUrl.WENXIN;
+                case LLMConstants.ModelType.OLLAMA:
+                    return LLMConstants.DefaultBaseUrl.OLLAMA;
+                case LLMConstants.ModelType.AZURE:
+                    return LLMConstants.DefaultBaseUrl.AZURE;
+                default:
+                    return LLMConstants.DefaultBaseUrl.OPENAI;
+            }
+        }
     }
 
     /**
@@ -135,6 +189,33 @@ public final class LLMConfigState implements PersistentStateComponent<LLMConfigS
      */
     public ModelConfig getDefaultModelConfig() {
         return this.getModelConfig(this.defaultModelType);
+    }
+
+    /**
+     * 获取默认模型的有效baseUrl
+     * <p>
+     * 如果用户配置了自定义baseUrl，则使用用户的配置；
+     * 否则使用该模型类型的默认baseUrl
+     * </p>
+     *
+     * @return 有效的baseUrl
+     * @since 1.0.0
+     */
+    public String getEffectiveBaseUrl() {
+        ModelConfig config = this.getDefaultModelConfig();
+        return config.getEffectiveBaseUrl(this.defaultModelType);
+    }
+
+    /**
+     * 获取指定模型类型的有效baseUrl
+     *
+     * @param modelType 模型类型
+     * @return 有效的baseUrl
+     * @since 1.0.0
+     */
+    public String getEffectiveBaseUrl(String modelType) {
+        ModelConfig config = this.getModelConfig(modelType);
+        return config.getEffectiveBaseUrl(modelType);
     }
 
     /**

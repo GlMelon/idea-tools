@@ -159,6 +159,12 @@
                           displayName="AI代码生成"
                           groupWeight="10"/>
         </applicationConfigurable>
+        <!-- HTTP接口测试配置 - 项目级别 -->
+        <projectConfigurable parentId="io.github.easy.tools.ui.config.EasyConfig"
+                             instance="io.github.easy.tools.ui.config.ApiTestConfig"
+                             id="io.github.easy.tools.ui.config.EasyConfig.05.ApiTestConfig"
+                             displayName="HTTP接口测试"
+                             groupWeight="5"/>
         <!-- Java注释配置改为项目级别配置 -->
         <projectConfigurable parentId="io.github.easy.tools.ui.config.EasyConfig"
                              instance="io.github.easy.tools.ui.config.DocConfig"

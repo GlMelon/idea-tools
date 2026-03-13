@@ -93,6 +93,36 @@ public final class LLMConstants {
     }
 
     /**
+     * 各厂商默认API Base URL常量
+     * <p>
+     * 如果用户未配置自定义baseUrl，则使用这些默认地址
+     * </p>
+     */
+    public static final class DefaultBaseUrl {
+        /** OpenAI默认API地址 */
+        public static final String OPENAI = "https://api.openai.com/v1";
+        /** Anthropic Claude默认API地址 */
+        public static final String CLAUDE = "https://api.anthropic.com/v1";
+        /** Google Gemini默认API地址 (OpenAI兼容模式) */
+        public static final String GEMINI = "https://generativelanguage.googleapis.com/v1beta/openai";
+        /** DeepSeek默认API地址 */
+        public static final String DEEPSEEK = "https://api.deepseek.com";
+        /** 通义千问(Qwen)默认API地址 (OpenAI兼容模式) */
+        public static final String QWEN = "https://dashscope.aliyuncs.com/compatible-mode/v1";
+        /** 智谱清言(GLM)默认API地址 (OpenAI兼容模式) */
+        public static final String GLM = "https://open.bigmodel.cn/api/paas/v4";
+        /** 百度文心一言默认API地址 */
+        public static final String WENXIN = "https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop";
+        /** Ollama本地服务默认API地址 */
+        public static final String OLLAMA = "http://localhost:11434";
+        /** Azure OpenAI无默认地址，需要用户自行配置 */
+        public static final String AZURE = "";
+
+        private DefaultBaseUrl() {
+        }
+    }
+
+    /**
      * 默认配置常量
      * <p>
      * 参数说明：

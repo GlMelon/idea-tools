@@ -38,12 +38,15 @@ public class OllamaProvider implements AIProvider {
         try {
             // 获取默认模型配置
             LLMConfigState.ModelConfig config = this.configState.getDefaultModelConfig();
-            
+
+            // 获取有效的baseUrl（优先使用用户配置，否则使用默认值）
+            String effectiveBaseUrl = config.getEffectiveBaseUrl(this.configState.defaultModelType);
+
             // 构建请求体
             String requestBody = this.buildRequestBody(request);
-            
+
             // 发送HTTP请求到Ollama API
-            return HttpRequests.post(config.baseUrl + LLMConstants.ApiEndpoint.OLLAMA_GENERATE, "application/json")
+            return HttpRequests.post(effectiveBaseUrl + LLMConstants.ApiEndpoint.OLLAMA_GENERATE, "application/json")
                     .connect(httpRequest -> {
                         httpRequest.write(requestBody);
                         return httpRequest.readString();

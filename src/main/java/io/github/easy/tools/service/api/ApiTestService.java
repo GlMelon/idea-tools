@@ -61,6 +61,17 @@ public class ApiTestService {
         Map<String, Object> result = new HashMap<>();
         try {
             ApiTestConfigState cfg = ApiTestConfigState.getInstance(project);
+
+            // 检查baseUrl配置
+            if (cfg.baseUrl == null || cfg.baseUrl.trim().isEmpty()) {
+                String errorMsg = "请先配置服务基础地址(baseUrl)";
+                NotificationUtil.showError(project, errorMsg);
+                result.put("statusCode", 0);
+                result.put("headers", new HashMap<>());
+                result.put("body", "错误: " + errorMsg);
+                return result;
+            }
+
             Map<String, String> headers = new HashMap<>();
 
             // 1. 解析全局请求头（支持动态值）
@@ -212,6 +223,14 @@ public class ApiTestService {
     public String execute(Project project, ApiInfo apiInfo, Map<String, String> customHeaders, String bodyJson) {
         try {
             ApiTestConfigState cfg = ApiTestConfigState.getInstance(project);
+
+            // 检查baseUrl配置
+            if (cfg.baseUrl == null || cfg.baseUrl.trim().isEmpty()) {
+                String errorMsg = "请先配置服务基础地址(baseUrl)";
+                NotificationUtil.showError(project, errorMsg);
+                return "错误: " + errorMsg;
+            }
+
             Map<String, String> headers = new HashMap<>();
             // 合并公共头
             this.addHeaders(headers, cfg.commonHeaders);
@@ -300,14 +319,24 @@ public class ApiTestService {
      * @since 1.0.0
      */
     private String buildAbsoluteUrl(String baseUrl, String path) {
-        if (path == null) {
-            return baseUrl;
-        }
-        if (baseUrl == null || baseUrl.isEmpty() || path.startsWith("http")) {
+        // 如果path已经是完整的URL，直接返回
+        if (path != null && (path.startsWith("http://") || path.startsWith("https://"))) {
             return path;
         }
+
+        // 如果baseUrl为空或空字符串
+        if (baseUrl == null || baseUrl.trim().isEmpty()) {
+            // 如果path是绝对路径（以/开头），将其作为相对路径返回
+            // 但这通常不是有效的URL，需要用户配置baseUrl
+            if (path != null && !path.trim().isEmpty()) {
+                return path;
+            }
+            return "";
+        }
+
+        // 正常拼接URL
         String b = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
-        String p = path.startsWith("/") ? path : "/" + path;
+        String p = (path != null && path.startsWith("/")) ? path : "/" + (path == null ? "" : path);
         return b + p;
     }
 

@@ -5,7 +5,9 @@ import com.intellij.openapi.project.Project;
 import io.github.easy.tools.entity.api.ApiInfo;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -187,20 +189,21 @@ public final class ApiCacheService {
     /**
      * 加载所有API接口数据
      * 使用SpringMvcApiScanner扫描项目中的所有Controller类
-     * 
+     *
      * <p>处理逻辑：</p>
      * <ol>
      *   <li>创建SpringMvcApiScanner实例</li>
      *   <li>扫描@RestController注解的类</li>
      *   <li>扫描@Controller注解的类</li>
-     *   <li>合并并排序结果</li>
+     *   <li>合并、去重并排序结果</li>
      * </ol>
-     * 
+     *
      * <p>注意事项：</p>
      * <ul>
      *   <li>此方法会执行耗时的扫描操作</li>
      *   <li>建议在后台线程中调用</li>
      *   <li>支持递归处理元注解和复合注解</li>
+     *   <li>由于@RestController继承自@Controller，需要去重避免重复</li>
      * </ul>
      *
      * @return 扫描到的API接口列表
@@ -216,9 +219,37 @@ public final class ApiCacheService {
         // 查找所有带有@Controller注解的类（包括通过元注解间接标注的类）
         apiInfos.addAll(scanner.findControllerClasses("org.springframework.stereotype.Controller"));
 
+        // 去重：由于@RestController继承自@Controller，同一个类可能被扫描两次
+        // 使用LinkedHashSet保持插入顺序，同时去重
+        Set<String> seenKeys = new LinkedHashSet<>();
+        List<ApiInfo> deduplicatedList = new ArrayList<>();
+        for (ApiInfo apiInfo : apiInfos) {
+            // 使用className + methodName + url + method作为唯一键
+            String key = buildUniqueKey(apiInfo);
+            if (!seenKeys.contains(key)) {
+                seenKeys.add(key);
+                deduplicatedList.add(apiInfo);
+            }
+        }
+
         // 按名称排序
-        return apiInfos.stream()
+        return deduplicatedList.stream()
                 .sorted((a, b) -> a.getName().compareToIgnoreCase(b.getName()))
                 .toList();
+    }
+
+    /**
+     * 构建API信息的唯一键
+     * 用于去重判断
+     *
+     * @param apiInfo API信息
+     * @return 唯一键字符串
+     */
+    private String buildUniqueKey(ApiInfo apiInfo) {
+        return String.format("%s#%s#%s#%s",
+                apiInfo.getClassName() == null ? "" : apiInfo.getClassName(),
+                apiInfo.getMethodName() == null ? "" : apiInfo.getMethodName(),
+                apiInfo.getUrl() == null ? "" : apiInfo.getUrl(),
+                apiInfo.getMethod() == null ? "" : apiInfo.getMethod());
     }
 }

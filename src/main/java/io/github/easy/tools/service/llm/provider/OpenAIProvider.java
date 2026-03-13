@@ -1,13 +1,13 @@
 package io.github.easy.tools.service.llm.provider;
 
-import com.google.gson.JsonObject;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import com.intellij.util.io.HttpRequests;
-import java.io.IOException;
 import io.github.easy.tools.constants.LLMConstants;
 import io.github.easy.tools.service.llm.AIRequest;
-import io.github.easy.tools.ui.config.DocConfigService;
 import io.github.easy.tools.ui.config.LLMConfigState;
+
+import java.io.IOException;
 
 /**
  * <p> OpenAI服务提供商实现 </p>
@@ -28,19 +28,19 @@ import io.github.easy.tools.ui.config.LLMConfigState;
  * @since 1.0.0
  */
 public class OpenAIProvider implements AIProvider {
-    
+
     /**
      * LLM配置状态服务实例
      */
     private final LLMConfigState configState;
-    
+
     /**
      * 构造函数，初始化配置服务
      */
     public OpenAIProvider() {
         this.configState = LLMConfigState.getInstance();
     }
-    
+
     /**
      * 发送请求到OpenAI服务并获取响应
      *
@@ -53,12 +53,15 @@ public class OpenAIProvider implements AIProvider {
         try {
             // 获取默认模型配置
             LLMConfigState.ModelConfig config = this.configState.getDefaultModelConfig();
-            
+
+            // 获取有效的baseUrl（优先使用用户配置，否则使用默认值）
+            String effectiveBaseUrl = config.getEffectiveBaseUrl(this.configState.defaultModelType);
+
             // 构建请求体
             String requestBody = this.buildRequestBody(request);
-            
+
             // 发送HTTP请求
-            return HttpRequests.post(config.baseUrl + LLMConstants.ApiEndpoint.OPENAI_CHAT, "application/json")
+            return HttpRequests.post(effectiveBaseUrl + LLMConstants.ApiEndpoint.OPENAI_CHAT, "application/json")
                     .tuner(connection -> {
                         connection.setRequestProperty("Authorization", "Bearer " + config.apiKey);
                     })
@@ -70,7 +73,7 @@ public class OpenAIProvider implements AIProvider {
             throw new RuntimeException("调用OpenAI服务失败: " + e.getMessage(), e);
         }
     }
-    
+
     /**
      * 获取提供商名称
      *
@@ -81,11 +84,12 @@ public class OpenAIProvider implements AIProvider {
     public String getProviderName() {
         return LLMConstants.ModelDisplayName.OPENAI;
     }
-    
+
     /**
      * 构建OpenAI API请求体
      * <p>
      * 构建符合OpenAI API规范的JSON请求体，包含模型名称、消息、温度等参数
+     * OpenAI o1/o3系列推理模型支持reasoning_effort参数控制推理强度
      * </p>
      *
      * @param request AI请求对象
@@ -95,17 +99,17 @@ public class OpenAIProvider implements AIProvider {
     private String buildRequestBody(AIRequest request) {
         // 构建消息数组
         JsonArray messages = new JsonArray();
-        
+
         JsonObject systemMsg = new JsonObject();
         systemMsg.addProperty("role", "system");
         systemMsg.addProperty("content", LLMConstants.SystemPrompt.JAVA_DOC_SYSTEM);
         messages.add(systemMsg);
-        
+
         JsonObject userMsg = new JsonObject();
         userMsg.addProperty("role", "user");
         userMsg.addProperty("content", request.getPrompt());
         messages.add(userMsg);
-        
+
         // 构建请求体
         JsonObject json = new JsonObject();
         json.addProperty("model", request.getModel());
@@ -114,7 +118,13 @@ public class OpenAIProvider implements AIProvider {
         json.addProperty("top_p", request.getTopP());
         json.addProperty("max_tokens", request.getMaxTokens());
         json.addProperty("stream", request.isStream());
-        
+
+        // OpenAI推理模型（o1, o3等）支持reasoning_effort参数
+        // 只在开启思考模式时添加，设置为"medium"作为默认值
+        if (request.isEnableReasoning()) {
+            json.addProperty("reasoning_effort", "medium");
+        }
+
         return json.toString();
     }
 }

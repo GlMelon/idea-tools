@@ -18,7 +18,6 @@ import com.intellij.psi.PsiJavaDocumentedElement;
 import com.intellij.psi.PsiMember;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiModifierList;
-import com.intellij.psi.PsiJavaFile;
 import com.intellij.psi.PsiPackageStatement;
 import com.intellij.psi.PsiParameter;
 import com.intellij.psi.PsiParserFacade;
@@ -287,8 +286,8 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
         LLMConfigState.ModelConfig modelConfig = configState.getDefaultModelConfig();
 
         // 检查AI配置
-        if (StringUtil.isEmpty(modelConfig.baseUrl) || StringUtil.isEmpty(modelConfig.modelName)) {
-            NotificationUtil.showWarning(file.getProject(), "请先配置大模型相关信息");
+        if (StringUtil.isEmpty(modelConfig.modelName)) {
+            NotificationUtil.showWarning(file.getProject(), "大模型名称必填");
             return;
         }
 
@@ -416,15 +415,45 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
      * @since 1.0.0
      */
     private void generateCommentsRecursively(PsiElement element, boolean overwrite, boolean useAi) {
-        // 为当前元素生成注释
+        // 判断当前文件是否是 package-info.java
+        boolean isPackageInfoFile = this.isPackageInfoFile(element);
+
+        // 如果是 package-info.java 文件，只处理 PsiPackageStatement
+        // 如果是普通 Java 文件，跳过 PsiPackageStatement，只处理类、方法、字段
+        if (element instanceof PsiPackageStatement) {
+            // 只有在 package-info.java 文件中才处理包注释
+            if (isPackageInfoFile) {
+                this.generate(element.getContainingFile(), element, overwrite, useAi);
+            }
+            // package-info.java 文件中没有类/方法/字段，不需要递归
+            return;
+        }
+
+        // 为当前元素生成注释（类、方法、字段等）
         this.generate(element.getContainingFile(), element, overwrite, useAi);
 
         // 递归处理所有子元素
         for (PsiElement child : element.getChildren()) {
-            if (child instanceof PsiClass || child instanceof PsiMethod || child instanceof PsiField || child instanceof PsiPackageStatement) {
+            // 普通Java文件中跳过 PsiPackageStatement
+            if (child instanceof PsiPackageStatement) {
+                continue;
+            }
+            if (child instanceof PsiClass || child instanceof PsiMethod || child instanceof PsiField) {
                 this.generateCommentsRecursively(child, overwrite, useAi);
             }
         }
+    }
+
+    /**
+     * 判断当前元素是否属于 package-info.java 文件
+     *
+     * @param element PSI元素
+     * @return 是否是 package-info.java 文件
+     * @since 1.0.0
+     */
+    private boolean isPackageInfoFile(PsiElement element) {
+        PsiFile containingFile = element.getContainingFile();
+        return containingFile != null && "package-info.java".equals(containingFile.getName());
     }
 
     /**
@@ -438,6 +467,13 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
     private void writeDoc(Project project, PsiElement element, PsiElement docContent) {
         WriteCommandAction.runWriteCommandAction(project, () -> {
             try {
+                // 特殊处理 PsiPackageStatement（package-info.java 文件中的包声明）
+                if (element instanceof PsiPackageStatement psiPackageStatement) {
+                    this.writePackageDoc(psiPackageStatement, docContent, project);
+                    this.registerNonStandardTags(project, docContent);
+                    return;
+                }
+
                 if (element instanceof PsiJavaDocumentedElement psiJavaDocumentedElement) {
                     PsiDocComment docComment = psiJavaDocumentedElement.getDocComment();
                     if (docComment != null) {
@@ -475,6 +511,46 @@ public class JavaCommentGenerationStrategy implements CommentGenerationStrategy 
                 log.error("写入注释时发生异常: " + e.getMessage());
             }
         });
+    }
+
+    /**
+     * 为 PsiPackageStatement 写入文档注释
+     * <p>
+     * package-info.java 文件中的包声明需要特殊处理，
+     * 因为 PsiPackageStatement 不是 PsiJavaDocumentedElement 的子类。
+     * 注释应该插入到文件的最开始位置，在 package 语句之前。
+     * </p>
+     *
+     * @param packageStatement 包声明元素
+     * @param docContent       注释内容
+     * @param project          项目实例
+     * @since 1.0.0
+     */
+    private void writePackageDoc(PsiPackageStatement packageStatement, PsiElement docContent, Project project) {
+        PsiFile containingFile = packageStatement.getContainingFile();
+        if (containingFile == null) {
+            return;
+        }
+
+        // 检查文件中是否已存在注释（在 package 语句之前）
+        // 如果存在，则替换；否则添加新注释
+        PsiElement firstChild = containingFile.getFirstChild();
+        if (firstChild instanceof PsiDocComment existingDoc) {
+            // 替换已存在的注释
+            existingDoc.replace(docContent);
+        } else {
+            // 在文件开头添加新注释
+            ASTNode fileNode = containingFile.getNode();
+            ASTNode docNode = docContent.getNode();
+            ASTNode packageNode = packageStatement.getNode();
+
+            // 在 package 语句之前插入注释
+            fileNode.addChild(docNode, packageNode);
+
+            // 添加换行符，使注释与 package 语句紧贴
+            PsiElement whiteSpace = PsiParserFacade.getInstance(project).createWhiteSpaceFromText("\n");
+            fileNode.addChild(whiteSpace.getNode(), packageNode);
+        }
     }
 
     /**
