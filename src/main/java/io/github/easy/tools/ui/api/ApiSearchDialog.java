@@ -320,7 +320,7 @@ public class ApiSearchDialog extends DialogWrapper {
         });
 
         this.scrollPane = new JBScrollPane(this.resultList);
-        this.scrollPane.setPreferredSize(new Dimension(480, 100)); // 设置为5行高度
+        this.scrollPane.setPreferredSize(new Dimension(480, 300)); // 设置结果列表高度为300，可显示更多结果
         listPanel.add(this.scrollPane, BorderLayout.CENTER);
 
         // 使用CardLayout来切换结果列表、空提示和搜索中提示
@@ -338,7 +338,7 @@ public class ApiSearchDialog extends DialogWrapper {
 
         panel.add(searchPanel, BorderLayout.NORTH);
         panel.add(this.resultPanel, BorderLayout.CENTER);
-        panel.setPreferredSize(new Dimension(500, 350)); // 设置首选大小
+        panel.setPreferredSize(new Dimension(500, 400)); // 设置首选大小，增加高度以适应更大的结果列表
 
         return panel;
     }

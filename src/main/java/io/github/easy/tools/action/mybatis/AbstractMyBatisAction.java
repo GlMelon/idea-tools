@@ -208,9 +208,10 @@ public abstract class AbstractMyBatisAction extends AnAction {
             return null;
         }
 
-        MapperXmlCacheService cacheService = MapperXmlCacheService.getInstance();
-        if (cacheService.isCacheEmpty() && mapperClass.getProject() != null) {
-            cacheService.scanAndCacheMapperXmlFiles(mapperClass.getProject());
+        Project project = mapperClass.getProject();
+        MapperXmlCacheService cacheService = MapperXmlCacheService.getInstance(project);
+        if (cacheService.isCacheEmpty()) {
+            cacheService.scanAndCacheMapperXmlFiles();
         }
 
         return cacheService.getXmlFileByNamespace(qualifiedName);

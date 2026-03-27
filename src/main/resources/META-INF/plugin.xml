@@ -177,10 +177,6 @@
                            key="notification.group.name"/>
     </extensions>
 
-    <extensions defaultExtensionNs="com.intellij">
-        <toolWindow id="API Manager" secondary="true" anchor="right"
-                    factoryClass="io.github.easy.tools.ui.api.ApiManagerToolWindowFactory"/>
-    </extensions>
 
     <applicationListeners>
         <listener class="io.github.easy.tools.action.doc.listener.FileSaveListenerManager"

@@ -106,11 +106,11 @@ public class MapperLineMarkerProvider extends RelatedItemLineMarkerProvider {
         }
 
         // 从缓存中查找对应的XML文件
-        MapperXmlCacheService cacheService = MapperXmlCacheService.getInstance();
+        MapperXmlCacheService cacheService = MapperXmlCacheService.getInstance(element.getProject());
 
         // 如果缓存为空，先扫描
-        if (cacheService.isCacheEmpty() && element.getProject() != null) {
-            cacheService.scanAndCacheMapperXmlFiles(element.getProject());
+        if (cacheService.isCacheEmpty()) {
+            cacheService.scanAndCacheMapperXmlFiles();
         }
 
         XmlFile xmlFile = cacheService.getXmlFileByNamespace(qualifiedName);
@@ -157,9 +157,9 @@ public class MapperLineMarkerProvider extends RelatedItemLineMarkerProvider {
         }
 
         // 从缓存中查找对应的XML文件
-        MapperXmlCacheService cacheService = MapperXmlCacheService.getInstance();
-        if (cacheService.isCacheEmpty() && element.getProject() != null) {
-            cacheService.scanAndCacheMapperXmlFiles(element.getProject());
+        MapperXmlCacheService cacheService = MapperXmlCacheService.getInstance(element.getProject());
+        if (cacheService.isCacheEmpty()) {
+            cacheService.scanAndCacheMapperXmlFiles();
         }
 
         XmlFile xmlFile = cacheService.getXmlFileByNamespace(qualifiedName);

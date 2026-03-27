@@ -1,6 +1,7 @@
 package io.github.easy.tools.service.mybatis;
 
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -18,6 +19,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Mapper Xml Cache Service
+ * <p>
+ * 改为项目级别服务，确保缓存与项目绑定，避免多项目之间的冲突。
+ * </p>
  *
  * @author haijun
  * @date 2025-12-12 14:07:26
@@ -25,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @since 1.0.0
  */
 @Slf4j
+@Service(Service.Level.PROJECT)
 public class MapperXmlCacheService {
 
     /**
@@ -38,35 +43,42 @@ public class MapperXmlCacheService {
     private final Map<String, String> pathToNamespaceCache = new ConcurrentHashMap<>();
 
     /**
-     * 单例实例
+     * 关联的项目
      */
-    private static final MapperXmlCacheService INSTANCE = new MapperXmlCacheService();
+    private final Project project;
 
     /**
-     * 私有构造函数，防止外部实例化
+     * 缓存是否已初始化
+     */
+    private volatile boolean initialized = false;
+
+    /**
+     * 构造函数
      *
+     * @param project 关联的项目
      * @since 1.0.0
      */
-    private MapperXmlCacheService() {
+    public MapperXmlCacheService(Project project) {
+        this.project = project;
     }
 
     /**
      * 获取服务实例
      *
+     * @param project 项目
      * @return MapperXmlCacheService实例
      * @since 1.0.0
      */
-    public static MapperXmlCacheService getInstance() {
-        return INSTANCE;
+    public static MapperXmlCacheService getInstance(Project project) {
+        return project.getService(MapperXmlCacheService.class);
     }
 
     /**
      * 扫描项目中的所有Mapper XML文件并构建缓存
      *
-     * @param project 当前项目
      * @since 1.0.0
      */
-    public void scanAndCacheMapperXmlFiles(Project project) {
+    public void scanAndCacheMapperXmlFiles() {
         ApplicationManager.getApplication().runReadAction(() -> {
             try {
                 // 清空旧缓存
@@ -76,10 +88,10 @@ public class MapperXmlCacheService {
                 // 获取项目中所有的XML文件
                 var xmlFiles = FileTypeIndex.getFiles(
                         com.intellij.ide.highlighter.XmlFileType.INSTANCE,
-                        GlobalSearchScope.projectScope(project)
+                        GlobalSearchScope.projectScope(this.project)
                 );
 
-                PsiManager psiManager = PsiManager.getInstance(project);
+                PsiManager psiManager = PsiManager.getInstance(this.project);
 
                 // 遍历所有XML文件
                 for (VirtualFile virtualFile : xmlFiles) {
@@ -97,11 +109,23 @@ public class MapperXmlCacheService {
                     }
                 }
 
-                log.info("MyBatis Mapper XML缓存完成，共缓存{}个文件", this.namespaceToXmlFileCache.size());
+                this.initialized = true;
+                log.info("MyBatis Mapper XML缓存完成，项目: {}, 共缓存{}个文件",
+                        this.project.getName(), this.namespaceToXmlFileCache.size());
             } catch (Exception e) {
                 log.error("扫描Mapper XML文件失败", e);
             }
         });
+    }
+
+    /**
+     * 检查缓存是否已初始化
+     *
+     * @return true如果已初始化
+     * @since 1.0.0
+     */
+    public boolean isInitialized() {
+        return this.initialized;
     }
 
     /**

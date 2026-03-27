@@ -89,7 +89,7 @@ public class MapperXmlChangeListener implements BulkFileListener {
 
                 String namespace = this.extractNamespace(xmlFile);
                 if (StringUtil.isNotEmpty(namespace)) {
-                    MapperXmlCacheService.getInstance().addToCache(namespace, xmlFile);
+                    MapperXmlCacheService.getInstance(this.project).addToCache(namespace, xmlFile);
                     log.debug("新增Mapper XML到缓存: namespace={}, file={}", namespace, virtualFile.getPath());
                 }
             } catch (Exception e) {
@@ -114,7 +114,7 @@ public class MapperXmlChangeListener implements BulkFileListener {
 
                 String namespace = this.extractNamespace(xmlFile);
                 if (StringUtil.isNotEmpty(namespace)) {
-                    MapperXmlCacheService.getInstance().addToCache(namespace, xmlFile);
+                    MapperXmlCacheService.getInstance(this.project).addToCache(namespace, xmlFile);
                     log.debug("更新Mapper XML缓存: namespace={}, file={}", namespace, virtualFile.getPath());
                 }
             } catch (Exception e) {
@@ -131,7 +131,7 @@ public class MapperXmlChangeListener implements BulkFileListener {
      */
     private void handleFileDelete(VirtualFile virtualFile) {
         // 文件已删除，无法获取PSI，通过文件路径从缓存中移除
-        MapperXmlCacheService.getInstance().removeFromCacheByPath(virtualFile.getPath());
+        MapperXmlCacheService.getInstance(this.project).removeFromCacheByPath(virtualFile.getPath());
         log.debug("从缓存中移除Mapper XML: file={}", virtualFile.getPath());
     }
 

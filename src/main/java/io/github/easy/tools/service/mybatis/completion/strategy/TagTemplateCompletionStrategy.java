@@ -59,17 +59,28 @@ public class TagTemplateCompletionStrategy implements CompletionStrategy {
      * @since 1.0.0
      */
     private void initializeTemplates() {
-        // if标签模板
+        // if标签模板 - 使用类型感知模板标记
         this.templates.add(TagTemplate.builder()
                 .keyword("if")
-                .description("生成if标签(判断非空)")
-                .template("<if test=\"{expression} != null and {expression} != ''\">\n    {cursor}\n</if>")
+                .description("生成if标签(判断非空，根据字段类型自动适配)")
+                .template("<if test=\"{expression} != null\">\n    {cursor}\n</if>")
+                .typeAware(true)
                 .build());
 
         this.templates.add(TagTemplate.builder()
                 .keyword("ifnull")
                 .description("生成if标签(判断为空)")
-                .template("<if test=\"{expression} == null or {expression} == ''\">\n    {cursor}\n</if>")
+                .template("<if test=\"{expression} == null\">\n    {cursor}\n</if>")
+                .typeAware(true)
+                .build());
+
+        // parentif标签模板 - 为父类字段生成if标签
+        this.templates.add(TagTemplate.builder()
+                .keyword("parentif")
+                .description("生成父类所有字段的if标签(批量)")
+                .template("")
+                .typeAware(false)
+                .isParentFields(true)
                 .build());
 
         // when标签模板
@@ -381,6 +392,20 @@ public class TagTemplateCompletionStrategy implements CompletionStrategy {
          *
          */
         private String template;
+
+        /**
+         * 是否为类型感知模板
+         * 如果为true，会根据字段类型自动生成不同的判断条件
+         */
+        @Builder.Default
+        private boolean typeAware = false;
+
+        /**
+         * 是否为父类字段模板
+         * 如果为true，会为父类所有字段生成if标签
+         */
+        @Builder.Default
+        private boolean isParentFields = false;
     }
 
     /**
@@ -458,11 +483,11 @@ public class TagTemplateCompletionStrategy implements CompletionStrategy {
             WriteCommandAction.runWriteCommandAction(context.getProject(), () -> {
                 // 向前查找,删除整个表达式
                 int deleteStart = this.findExpressionStart(document, startOffset);
-                
+
                 // 检查是否被#{}或${}包裹,如果是则一并删除
                 int finalDeleteStart = deleteStart;
                 int finalDeleteEnd = tailOffset;
-                
+
                 // 向前检查是否有#{或${
                 if (deleteStart >= 2) {
                     String textBefore = document.getText().substring(deleteStart - 2, deleteStart);
@@ -470,7 +495,7 @@ public class TagTemplateCompletionStrategy implements CompletionStrategy {
                         finalDeleteStart = deleteStart - 2;
                     }
                 }
-                
+
                 // 向后检查是否有}
                 if (tailOffset < document.getTextLength()) {
                     char charAfter = document.getCharsSequence().charAt(tailOffset);
@@ -478,22 +503,29 @@ public class TagTemplateCompletionStrategy implements CompletionStrategy {
                         finalDeleteEnd = tailOffset + 1;
                     }
                 }
-                
+
                 // 获取当前行的缩进
                 String indent = this.getCurrentLineIndent(document, finalDeleteStart);
-                
+
                 document.deleteString(finalDeleteStart, finalDeleteEnd);
 
                 // 生成模板内容
                 String templateContent;
-                if (this.isObjectLevel && "if".equals(this.template.getKeyword())) {
+
+                // 处理parentif标签
+                if (this.template.isParentFields()) {
+                    templateContent = this.generateParentFieldIfTemplate();
+                } else if (this.isObjectLevel && "if".equals(this.template.getKeyword())) {
                     // 对象级别的if模板，为所有字段生成if标签
                     templateContent = this.generateBatchFieldIfTemplate();
+                } else if (this.template.isTypeAware()) {
+                    // 类型感知模板，根据字段类型生成不同的判断条件
+                    templateContent = this.generateTypeAwareTemplate();
                 } else {
                     // 单个字段的模板
                     templateContent = this.generateTemplateContent();
                 }
-                
+
                 // 应用缩进到模板的每一行
                 templateContent = this.applyIndent(templateContent, indent);
 
@@ -607,6 +639,159 @@ public class TagTemplateCompletionStrategy implements CompletionStrategy {
         }
 
         /**
+         * 生成类型感知的模板内容
+         * 根据字段类型生成不同的判断条件
+         *
+         * @return 模板内容
+         * @since 1.0.0
+         */
+        private String generateTypeAwareTemplate() {
+            // 解析表达式获取字段类型
+            String fieldType = this.getFieldType();
+
+            // 根据字段类型生成判断条件
+            String condition;
+            if (this.isStringType(fieldType)) {
+                // String类型: != null and != ''
+                condition = this.expression + " != null and " + this.expression + " != ''";
+            } else {
+                // 非String类型: 只判断 != null
+                condition = this.expression + " != null";
+            }
+
+            String keyword = this.template.getKeyword();
+            if ("if".equals(keyword)) {
+                return "<if test=\"" + condition + "\">\n    {cursor}\n</if>";
+            } else if ("ifnull".equals(keyword)) {
+                // 反转条件
+                String nullCondition;
+                if (this.isStringType(fieldType)) {
+                    nullCondition = this.expression + " == null or " + this.expression + " == ''";
+                } else {
+                    nullCondition = this.expression + " == null";
+                }
+                return "<if test=\"" + nullCondition + "\">\n    {cursor}\n</if>";
+            }
+
+            return this.template.getTemplate()
+                    .replace("{expression}", this.expression)
+                    .replace("{field}", this.fieldName);
+        }
+
+        /**
+         * 获取字段类型
+         *
+         * @return 字段类型的完全限定名
+         * @since 1.0.0
+         */
+        private String getFieldType() {
+            PsiMethod method = this.context.getMapperMethod();
+            if (method == null) {
+                return null;
+            }
+
+            // 解析表达式
+            MyBatisExpressionParser.ExpressionParseResult parseResult =
+                    MyBatisExpressionParser.parseForCompletion(this.expression);
+            String[] parts = parseResult.getParts();
+
+            if (parts.length < 2) {
+                return null;
+            }
+
+            // 查找根参数
+            String rootParam = parseResult.getRootParam();
+            PsiParameter parameter = null;
+            for (PsiParameter param : method.getParameterList().getParameters()) {
+                String paramName = param.getName();
+                String annotationValue = MyBatisUtils.getParamAnnotationValue(param);
+                if (StringUtil.isNotEmpty(annotationValue)) {
+                    paramName = annotationValue;
+                }
+                if (rootParam.equals(paramName)) {
+                    parameter = param;
+                    break;
+                }
+            }
+
+            if (parameter == null) {
+                return null;
+            }
+
+            // 获取参数类型
+            PsiClass currentClass = MyBatisUtils.resolveRootParamClass(parameter, rootParam);
+            if (currentClass == null) {
+                return null;
+            }
+
+            currentClass = MyBatisUtils.resolveActualClassFromType(currentClass);
+            if (currentClass == null) {
+                return null;
+            }
+
+            // 遍历路径找到目标字段
+            // parts[0]是根参数，parts[parts.length-1]是要判断的字段
+            for (int i = 1; i < parts.length; i++) {
+                String fieldName = parts[i];
+                PsiField field = this.findFieldInClass(currentClass, fieldName);
+
+                if (field == null) {
+                    return null;
+                }
+
+                if (i == parts.length - 1) {
+                    // 最后一个字段，返回其类型
+                    return field.getType().getCanonicalText();
+                }
+
+                // 继续解析嵌套类型
+                currentClass = MyBatisUtils.getTypeOfResolvedElement(field);
+                if (currentClass == null) {
+                    return null;
+                }
+                currentClass = MyBatisUtils.resolveActualClassFromType(currentClass);
+            }
+
+            return null;
+        }
+
+        /**
+         * 在类中查找字段(包括父类)
+         *
+         * @param psiClass 类
+         * @param fieldName 字段名
+         * @return 字段对象
+         * @since 1.0.0
+         */
+        private PsiField findFieldInClass(@NotNull PsiClass psiClass, @NotNull String fieldName) {
+            // 先查找当前类
+            PsiField field = psiClass.findFieldByName(fieldName, false);
+            if (field != null) {
+                return field;
+            }
+            // 再查找父类
+            return psiClass.findFieldByName(fieldName, true);
+        }
+
+        /**
+         * 判断是否为String类型
+         *
+         * @param typeCanonicalText 类型的完全限定名
+         * @return true如果是String类型
+         * @since 1.0.0
+         */
+        private boolean isStringType(String typeCanonicalText) {
+            if (StringUtil.isEmpty(typeCanonicalText)) {
+                // 默认当作String类型处理
+                return true;
+            }
+            String type = typeCanonicalText.toLowerCase();
+            return type.equals("java.lang.string") ||
+                   type.equals("string") ||
+                   type.contains("string");
+        }
+
+        /**
          * 生成批量字段if模板(query.if -> 为所有字段生成if)
          *
          * @return 模板内容
@@ -652,30 +837,119 @@ public class TagTemplateCompletionStrategy implements CompletionStrategy {
                 return this.generateTemplateContent();
             }
 
-            // 获取所有字段
-            PsiField[] fields = psiClass.getAllFields();
+            // 只获取当前类的字段（不包括父类）
+            PsiField[] ownFields = psiClass.getFields();
+
+            return this.generateFieldIfTags(ownFields, false);
+        }
+
+        /**
+         * 生成父类字段if模板(parentif)
+         *
+         * @return 模板内容
+         * @since 1.0.0
+         */
+        private String generateParentFieldIfTemplate() {
+            PsiMethod method = this.context.getMapperMethod();
+            if (method == null) {
+                return "{cursor}";
+            }
+
+            // 解析表达式获取根参数
+            MyBatisExpressionParser.ExpressionParseResult parseResult =
+                    MyBatisExpressionParser.parseForCompletion(this.expression);
+            String rootParam = parseResult.getRootParam();
+
+            // 查找根参数
+            PsiParameter parameter = null;
+            for (PsiParameter param : method.getParameterList().getParameters()) {
+                String paramName = param.getName();
+                String annotationValue = MyBatisUtils.getParamAnnotationValue(param);
+                if (StringUtil.isNotEmpty(annotationValue)) {
+                    paramName = annotationValue;
+                }
+                if (rootParam.equals(paramName)) {
+                    parameter = param;
+                    break;
+                }
+            }
+
+            if (parameter == null) {
+                return "{cursor}";
+            }
+
+            // 获取参数类型
+            PsiClass psiClass = MyBatisUtils.resolveRootParamClass(parameter, rootParam);
+            if (psiClass == null) {
+                return "{cursor}";
+            }
+
+            psiClass = MyBatisUtils.resolveActualClassFromType(psiClass);
+            if (psiClass == null) {
+                return "{cursor}";
+            }
+
+            // 获取所有字段（包括父类）
+            PsiField[] allFields = psiClass.getAllFields();
+            // 获取当前类的字段
+            PsiField[] ownFields = psiClass.getFields();
+
+            // 过滤出父类字段
+            java.util.Set<String> ownFieldNames = new java.util.HashSet<>();
+            for (PsiField f : ownFields) {
+                ownFieldNames.add(f.getName());
+            }
+
+            java.util.List<PsiField> parentFields = new java.util.ArrayList<>();
+            for (PsiField f : allFields) {
+                if (!ownFieldNames.contains(f.getName())) {
+                    parentFields.add(f);
+                }
+            }
+
+            return this.generateFieldIfTags(parentFields.toArray(new PsiField[0]), true);
+        }
+
+        /**
+         * 生成字段if标签（支持类型检测）
+         *
+         * @param fields 字段数组
+         * @param includeParentFields 是否包含父类字段
+         * @return 模板内容
+         * @since 1.0.0
+         */
+        private String generateFieldIfTags(PsiField[] fields, boolean includeParentFields) {
             if (fields.length == 0) {
-                return this.generateTemplateContent();
+                return "{cursor}";
             }
 
             // 生成所有字段的if标签
             StringBuilder result = new StringBuilder();
             for (PsiField field : fields) {
                 String fieldName = field.getName();
-                
+
                 // 跳过静态字段和特殊字段
-                if (field.hasModifierProperty("static") || 
-                    "serialVersionUID".equals(fieldName) || 
+                if (field.hasModifierProperty("static") ||
+                    "serialVersionUID".equals(fieldName) ||
                     "class".equals(fieldName)) {
                     continue;
                 }
 
                 String fullPath = this.expression + "." + fieldName;
                 String columnName = PropertyNameConverter.toLowerUnderline(fieldName);
-                
-                result.append("<if test=\"").append(fullPath)
-                      .append(" != null and ").append(fullPath)
-                      .append(" != ''\">").append("\n")
+
+                // 根据字段类型生成判断条件
+                String fieldType = field.getType().getCanonicalText();
+                String condition;
+                if (this.isStringType(fieldType)) {
+                    // String类型: != null and != ''
+                    condition = fullPath + " != null and " + fullPath + " != ''";
+                } else {
+                    // 非String类型: 只判断 != null
+                    condition = fullPath + " != null";
+                }
+
+                result.append("<if test=\"").append(condition).append("\">\n")
                       .append("    ").append(columnName).append(" = #{")
                       .append(fullPath).append("},\n")
                       .append("</if>\n");
@@ -683,7 +957,7 @@ public class TagTemplateCompletionStrategy implements CompletionStrategy {
 
             // 添加cursor标记
             result.append("{cursor}");
-            
+
             return result.toString();
         }
     }

@@ -107,12 +107,6 @@ public final class FeatureToggleService implements PersistentStateComponent<Feat
     // ========== API管理功能 ==========
 
     /**
-     * API管理工具窗口功能开关
-     * <p>右侧边栏的API接口管理面板</p>
-     */
-    public boolean apiManagerToolWindowEnabled = true;
-
-    /**
      * API搜索功能开关
      * <p>快速搜索和跳转Spring MVC接口</p>
      */
@@ -228,14 +222,6 @@ public final class FeatureToggleService implements PersistentStateComponent<Feat
 
     public void setPropertyConversionEnabled(boolean propertyConversionEnabled) {
         this.propertyConversionEnabled = propertyConversionEnabled;
-    }
-
-    public boolean isApiManagerToolWindowEnabled() {
-        return this.apiManagerToolWindowEnabled;
-    }
-
-    public void setApiManagerToolWindowEnabled(boolean apiManagerToolWindowEnabled) {
-        this.apiManagerToolWindowEnabled = apiManagerToolWindowEnabled;
     }
 
     public boolean isApiSearchActionEnabled() {

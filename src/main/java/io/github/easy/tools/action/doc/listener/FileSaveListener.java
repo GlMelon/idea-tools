@@ -74,12 +74,23 @@ public class FileSaveListener implements FileDocumentManagerListener {
         }
 
         // 获取项目和PsiFile
-        Project[] projects = ProjectManager.getInstance().getOpenProjects();
-        if (projects.length == 0) {
+        // 通过文件路径找到正确的项目，而不是简单地使用第一个打开的项目
+        Project foundProject = null;
+        for (Project p : ProjectManager.getInstance().getOpenProjects()) {
+            if (p.isInitialized() && !p.isDisposed()) {
+                // 检查文件是否属于该项目
+                if (FileEditorManager.getInstance(p).isFileOpen(virtualFile)) {
+                    foundProject = p;
+                    break;
+                }
+            }
+        }
+
+        if (foundProject == null) {
             return;
         }
 
-        Project project = projects[0]; // 使用第一个打开的项目
+        final Project project = foundProject;
 
         // 检查文件是否在编辑器中打开
         if (!FileEditorManager.getInstance(project).isFileOpen(virtualFile)) {

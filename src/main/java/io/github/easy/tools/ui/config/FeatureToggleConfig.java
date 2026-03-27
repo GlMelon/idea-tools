@@ -1,11 +1,7 @@
 package io.github.easy.tools.ui.config;
 
 import com.intellij.openapi.options.Configurable;
-import com.intellij.openapi.project.Project;
-import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.Messages;
-import com.intellij.openapi.wm.ToolWindow;
-import com.intellij.openapi.wm.ToolWindowManager;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.Nullable;
 
@@ -52,7 +48,6 @@ public class FeatureToggleConfig implements Configurable {
     private JCheckBox mybatisSqlTagGenerationCheckBox;
     
     // API管理功能
-    private JCheckBox apiManagerToolWindowCheckBox;
     private JCheckBox apiSearchActionCheckBox;
     
     // 代码生成功能
@@ -150,9 +145,6 @@ public class FeatureToggleConfig implements Configurable {
         
         // API管理功能
         contentPanel.add(createGroupPanel("API管理功能 (API Management Features)"));
-        apiManagerToolWindowCheckBox = createCheckBox("API管理工具窗口 (API Manager Tool Window)");
-        contentPanel.add(createIndentedPanel(apiManagerToolWindowCheckBox));
-        
         apiSearchActionCheckBox = createCheckBox("API搜索 (API Search) - Ctrl+\\");
         contentPanel.add(createIndentedPanel(apiSearchActionCheckBox));
         
@@ -252,7 +244,6 @@ public class FeatureToggleConfig implements Configurable {
                 || mybatisParamReferenceCheckBox.isSelected() != service.isMybatisParamReferenceEnabled()
                 || mybatisXmlCompletionCheckBox.isSelected() != service.isMybatisXmlCompletionEnabled()
                 || mybatisSqlTagGenerationCheckBox.isSelected() != service.isMybatisSqlTagGenerationEnabled()
-                || apiManagerToolWindowCheckBox.isSelected() != service.isApiManagerToolWindowEnabled()
                 || apiSearchActionCheckBox.isSelected() != service.isApiSearchActionEnabled()
                 || aiCodeGenerationCheckBox.isSelected() != service.isAiCodeGenerationEnabled()
                 || propertyConversionCheckBox.isSelected() != service.isPropertyConversionEnabled()
@@ -267,8 +258,7 @@ public class FeatureToggleConfig implements Configurable {
         boolean needRestart = false;
         
         // 检查需要重启的功能
-        if (apiManagerToolWindowCheckBox.isSelected() != service.isApiManagerToolWindowEnabled()
-                || fileCommentDecoratorCheckBox.isSelected() != service.isFileCommentDecoratorEnabled()
+        if (fileCommentDecoratorCheckBox.isSelected() != service.isFileCommentDecoratorEnabled()
                 || mybatisMapperLineMarkerCheckBox.isSelected() != service.isMybatisMapperLineMarkerEnabled()
                 || mybatisXmlLineMarkerCheckBox.isSelected() != service.isMybatisXmlLineMarkerEnabled()
                 || mybatisXmlAnnotatorCheckBox.isSelected() != service.isMybatisXmlAnnotatorEnabled()
@@ -290,15 +280,11 @@ public class FeatureToggleConfig implements Configurable {
         service.setMybatisParamReferenceEnabled(mybatisParamReferenceCheckBox.isSelected());
         service.setMybatisXmlCompletionEnabled(mybatisXmlCompletionCheckBox.isSelected());
         service.setMybatisSqlTagGenerationEnabled(mybatisSqlTagGenerationCheckBox.isSelected());
-        service.setApiManagerToolWindowEnabled(apiManagerToolWindowCheckBox.isSelected());
         service.setApiSearchActionEnabled(apiSearchActionCheckBox.isSelected());
         service.setAiCodeGenerationEnabled(aiCodeGenerationCheckBox.isSelected());
         service.setPropertyConversionEnabled(propertyConversionCheckBox.isSelected());
         service.setFileCommentDecoratorEnabled(fileCommentDecoratorCheckBox.isSelected());
-        
-        // 动态控制API Manager工具窗口显示/隐藏(无需重启)
-        toggleApiManagerToolWindow(apiManagerToolWindowCheckBox.isSelected());
-        
+
         // 提示用户重启
         if (needRestart) {
             Messages.showInfoMessage(
@@ -325,26 +311,9 @@ public class FeatureToggleConfig implements Configurable {
         mybatisParamReferenceCheckBox.setSelected(service.isMybatisParamReferenceEnabled());
         mybatisXmlCompletionCheckBox.setSelected(service.isMybatisXmlCompletionEnabled());
         mybatisSqlTagGenerationCheckBox.setSelected(service.isMybatisSqlTagGenerationEnabled());
-        apiManagerToolWindowCheckBox.setSelected(service.isApiManagerToolWindowEnabled());
         apiSearchActionCheckBox.setSelected(service.isApiSearchActionEnabled());
         aiCodeGenerationCheckBox.setSelected(service.isAiCodeGenerationEnabled());
         propertyConversionCheckBox.setSelected(service.isPropertyConversionEnabled());
         fileCommentDecoratorCheckBox.setSelected(service.isFileCommentDecoratorEnabled());
-    }
-
-    /**
-     * 动态切换API Manager工具窗口的显示状态
-     *
-     * @param enabled 是否启用
-     */
-    private void toggleApiManagerToolWindow(boolean enabled) {
-        Project[] openProjects = ProjectManager.getInstance().getOpenProjects();
-        for (Project project : openProjects) {
-            ToolWindowManager toolWindowManager = ToolWindowManager.getInstance(project);
-            ToolWindow toolWindow = toolWindowManager.getToolWindow("API Manager");
-            if (toolWindow != null) {
-                toolWindow.setAvailable(enabled, null);
-            }
-        }
     }
 }

@@ -36,10 +36,10 @@ dependencies {
     // IntelliJ Platform依赖 (2.x新语法)
     intellijPlatform {
         // 使用本地安装的 IDEA 作为测试平台（Mac）
-//        local('/Applications/IntelliJ IDEA.app')
+        local('/Applications/IntelliJ IDEA.app')
 
         // 如需切换回下载版本，使用以下配置：
-        create(providers.gradleProperty('platformType').get(), providers.gradleProperty('platformVersion').get())
+        // create(providers.gradleProperty('platformType').get(), providers.gradleProperty('platformVersion').get())
 
         // 绑定插件
         bundledPlugin('com.intellij.java')
@@ -87,9 +87,9 @@ tasks {
 }
 
 // 配置IntelliJ平台插件 2.x
-// 支持版本范围: 2020.3 (203) - 2025.3 (253)
+// 支持版本范围: 2020.3 (203) - 2026.1 (261)
 // 测试版本说明:
-//   - 开发基准版本: 2025.3 IU (插件用Java 17编译, IDE运行需要Java 21)
+//   - 开发基准版本: 2026.1 IU (插件用Java 21编译, IDE运行需要Java 21)
 //   - 测试版本:
 //     * 2020.3 (203) - 最后一个 Java 11 版本
 //     * 2021.3 (213) - Java 11
@@ -98,6 +98,7 @@ tasks {
 //     * 2024.3.2 (243) - Java 21 (指定版本)
 //     * 2025.2.5 (252) - Java 21 (指定版本)
 //     * 2025.3 (253) - Java 21 (指定版本)
+//     * 2026.1 (261) - Java 21 (指定版本)
 // 切换测试版本方法: 修改 gradle.properties 中的 platformVersion
 //
 // 注意: 为了支持Python PSI类，同时依赖PyCharm Community Edition
