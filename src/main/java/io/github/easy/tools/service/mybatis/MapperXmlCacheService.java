@@ -30,7 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 @Service(Service.Level.PROJECT)
-public class MapperXmlCacheService {
+public final class MapperXmlCacheService {
 
     /**
      * namespace到XML文件的映射缓存 <p> key: namespace的完全限定名(如: com.example.mapper.UserMapper) value: 对应的XmlFile对象 </p>

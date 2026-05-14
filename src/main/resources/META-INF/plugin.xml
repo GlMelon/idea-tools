@@ -2,7 +2,7 @@
     <!-- Plugin name and description -->
     <name>Easy Tools</name>
     <id>io.github.easy.tools</id>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
 
     <!-- Vendor information -->
     <vendor email="iamxiaohaijun@gmail.com" url="https://github.com/easy-tools">Easy Tools</vendor>
