@@ -64,7 +64,6 @@ dependencies {
 
     // 第三方依赖
 //    implementation "cn.hutool:hutool-all:${providers.gradleProperty('hutool.version').get()}"
-    implementation "com.fasterxml.jackson.core:jackson-databind:${providers.gradleProperty('jackson.version').get()}"
 
     compileOnly "org.projectlombok:lombok:${providers.gradleProperty('lombok.version').get()}"
     annotationProcessor "org.projectlombok:lombok:${providers.gradleProperty('lombok.version').get()}"
@@ -73,6 +72,10 @@ dependencies {
     testImplementation "junit:junit:${providers.gradleProperty('junit4.version').get()}"
     testImplementation platform("org.junit:junit-bom:${providers.gradleProperty('junit5.version').get()}")
     testImplementation 'org.junit.jupiter:junit-jupiter'
+
+    // MyBatis 功能验证 Fixture 依赖(仅测试类路径,不打入插件包)
+    testImplementation "org.mybatis:mybatis:${providers.gradleProperty('mybatis.version').get()}"
+    testImplementation "com.baomidou:mybatis-plus-core:${providers.gradleProperty('mybatis-plus.version').get()}"
 }
 
 // Java编译配置
@@ -111,8 +114,17 @@ tasks.withType(BuildSearchableOptionsTask).configureEach {
     systemProperty 'idea.ui.icons.svg.disk.cache', 'false'
 }
 
+// 禁用 IntelliJ 字节码插桩任务: 本项目未使用 .form GUI 表单, 无需插桩;
+// 同时避开 instrumentCode 依赖的 java-compiler-ant-tasks 从 JetBrains 仓库下载(国内常 Connection reset)。
+tasks.named('instrumentCode') {
+    enabled = false
+}
+tasks.named('instrumentTestCode') {
+    enabled = false
+}
+
 // 配置IntelliJ平台插件 2.x
-// 支持版本范围: 2020.3 (203) - 2026.1 (261)
+// 兼容范围: sinceBuild(2024.1, 241) 及以上所有版本 —— 不设 untilBuild 上限, IDEA 升级后无需重新打包。
 // 测试版本说明:
 //   - 开发基准版本: 2026.1 IU (插件用Java 21编译, IDE运行需要Java 21)
 //   - 测试版本:
@@ -137,7 +149,9 @@ intellijPlatform {
 
         ideaVersion {
             sinceBuild = providers.gradleProperty('platformSinceBuild')
-            untilBuild = providers.gradleProperty('platformUntilBuild')
+            // 不设上限: 兼容 sinceBuild 及以上的所有未来版本。
+            // 避免每次 IDEA 升级后都提示"需要IDE内部版本XXX.*或更低版本"导致插件不可用。
+            untilBuild = provider { null }
         }
     }
 }
