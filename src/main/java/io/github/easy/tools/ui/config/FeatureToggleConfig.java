@@ -34,8 +34,6 @@ public class FeatureToggleConfig implements Configurable {
     // JavaDoc功能组
     private JCheckBox generateFileCommentCheckBox;
     private JCheckBox generateElementCommentCheckBox;
-    private JCheckBox generateFileCommentByAiCheckBox;
-    private JCheckBox generateElementCommentByAiCheckBox;
     private JCheckBox removeElementCommentsCheckBox;
     private JCheckBox removeFileCommentsCheckBox;
     
@@ -49,10 +47,7 @@ public class FeatureToggleConfig implements Configurable {
     
     // API管理功能
     private JCheckBox apiSearchActionCheckBox;
-    
-    // 代码生成功能
-    private JCheckBox aiCodeGenerationCheckBox;
-    
+
     // 属性转换功能
     private JCheckBox propertyConversionCheckBox;
     
@@ -106,13 +101,7 @@ public class FeatureToggleConfig implements Configurable {
         
         generateElementCommentCheckBox = createCheckBox("生成元素注释 (Generate Element Comment) - Alt+J");
         contentPanel.add(createIndentedPanel(generateElementCommentCheckBox));
-        
-        generateFileCommentByAiCheckBox = createCheckBox("AI生成文件注释 (Generate File Comment by AI)");
-        contentPanel.add(createIndentedPanel(generateFileCommentByAiCheckBox));
-        
-        generateElementCommentByAiCheckBox = createCheckBox("AI生成元素注释 (Generate Element Comment by AI)");
-        contentPanel.add(createIndentedPanel(generateElementCommentByAiCheckBox));
-        
+
         removeElementCommentsCheckBox = createCheckBox("删除元素注释 (Remove Element Comments)");
         contentPanel.add(createIndentedPanel(removeElementCommentsCheckBox));
         
@@ -147,16 +136,9 @@ public class FeatureToggleConfig implements Configurable {
         contentPanel.add(createGroupPanel("API管理功能 (API Management Features)"));
         apiSearchActionCheckBox = createCheckBox("API搜索 (API Search) - Ctrl+\\");
         contentPanel.add(createIndentedPanel(apiSearchActionCheckBox));
-        
+
         contentPanel.add(Box.createVerticalStrut(15));
-        
-        // 代码生成功能
-        contentPanel.add(createGroupPanel("代码生成功能 (Code Generation Features)"));
-        aiCodeGenerationCheckBox = createCheckBox("AI代码生成 (AI Code Generation) - Ctrl+Shift+G");
-        contentPanel.add(createIndentedPanel(aiCodeGenerationCheckBox));
-        
-        contentPanel.add(Box.createVerticalStrut(15));
-        
+
         // 属性转换功能
         contentPanel.add(createGroupPanel("属性转换功能 (Property Conversion Features)"));
         propertyConversionCheckBox = createCheckBox("属性名称转换 (Property Name Conversion) - Ctrl+Shift+U");
@@ -234,8 +216,6 @@ public class FeatureToggleConfig implements Configurable {
     public boolean isModified() {
         return generateFileCommentCheckBox.isSelected() != service.isGenerateFileCommentEnabled()
                 || generateElementCommentCheckBox.isSelected() != service.isGenerateElementCommentEnabled()
-                || generateFileCommentByAiCheckBox.isSelected() != service.isGenerateFileCommentByAiEnabled()
-                || generateElementCommentByAiCheckBox.isSelected() != service.isGenerateElementCommentByAiEnabled()
                 || removeElementCommentsCheckBox.isSelected() != service.isRemoveElementCommentsEnabled()
                 || removeFileCommentsCheckBox.isSelected() != service.isRemoveFileCommentsEnabled()
                 || mybatisMapperLineMarkerCheckBox.isSelected() != service.isMybatisMapperLineMarkerEnabled()
@@ -245,7 +225,6 @@ public class FeatureToggleConfig implements Configurable {
                 || mybatisXmlCompletionCheckBox.isSelected() != service.isMybatisXmlCompletionEnabled()
                 || mybatisSqlTagGenerationCheckBox.isSelected() != service.isMybatisSqlTagGenerationEnabled()
                 || apiSearchActionCheckBox.isSelected() != service.isApiSearchActionEnabled()
-                || aiCodeGenerationCheckBox.isSelected() != service.isAiCodeGenerationEnabled()
                 || propertyConversionCheckBox.isSelected() != service.isPropertyConversionEnabled()
                 || fileCommentDecoratorCheckBox.isSelected() != service.isFileCommentDecoratorEnabled();
     }
@@ -270,8 +249,6 @@ public class FeatureToggleConfig implements Configurable {
         // 保存配置
         service.setGenerateFileCommentEnabled(generateFileCommentCheckBox.isSelected());
         service.setGenerateElementCommentEnabled(generateElementCommentCheckBox.isSelected());
-        service.setGenerateFileCommentByAiEnabled(generateFileCommentByAiCheckBox.isSelected());
-        service.setGenerateElementCommentByAiEnabled(generateElementCommentByAiCheckBox.isSelected());
         service.setRemoveElementCommentsEnabled(removeElementCommentsCheckBox.isSelected());
         service.setRemoveFileCommentsEnabled(removeFileCommentsCheckBox.isSelected());
         service.setMybatisMapperLineMarkerEnabled(mybatisMapperLineMarkerCheckBox.isSelected());
@@ -281,7 +258,6 @@ public class FeatureToggleConfig implements Configurable {
         service.setMybatisXmlCompletionEnabled(mybatisXmlCompletionCheckBox.isSelected());
         service.setMybatisSqlTagGenerationEnabled(mybatisSqlTagGenerationCheckBox.isSelected());
         service.setApiSearchActionEnabled(apiSearchActionCheckBox.isSelected());
-        service.setAiCodeGenerationEnabled(aiCodeGenerationCheckBox.isSelected());
         service.setPropertyConversionEnabled(propertyConversionCheckBox.isSelected());
         service.setFileCommentDecoratorEnabled(fileCommentDecoratorCheckBox.isSelected());
 
@@ -301,8 +277,6 @@ public class FeatureToggleConfig implements Configurable {
     public void reset() {
         generateFileCommentCheckBox.setSelected(service.isGenerateFileCommentEnabled());
         generateElementCommentCheckBox.setSelected(service.isGenerateElementCommentEnabled());
-        generateFileCommentByAiCheckBox.setSelected(service.isGenerateFileCommentByAiEnabled());
-        generateElementCommentByAiCheckBox.setSelected(service.isGenerateElementCommentByAiEnabled());
         removeElementCommentsCheckBox.setSelected(service.isRemoveElementCommentsEnabled());
         removeFileCommentsCheckBox.setSelected(service.isRemoveFileCommentsEnabled());
         mybatisMapperLineMarkerCheckBox.setSelected(service.isMybatisMapperLineMarkerEnabled());
@@ -312,7 +286,6 @@ public class FeatureToggleConfig implements Configurable {
         mybatisXmlCompletionCheckBox.setSelected(service.isMybatisXmlCompletionEnabled());
         mybatisSqlTagGenerationCheckBox.setSelected(service.isMybatisSqlTagGenerationEnabled());
         apiSearchActionCheckBox.setSelected(service.isApiSearchActionEnabled());
-        aiCodeGenerationCheckBox.setSelected(service.isAiCodeGenerationEnabled());
         propertyConversionCheckBox.setSelected(service.isPropertyConversionEnabled());
         fileCommentDecoratorCheckBox.setSelected(service.isFileCommentDecoratorEnabled());
     }

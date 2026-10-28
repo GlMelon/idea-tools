@@ -17,11 +17,9 @@ import org.jetbrains.annotations.Nullable;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
-import javax.swing.JRadioButton;
 import javax.swing.JTextArea;
 import javax.swing.JTree;
 import javax.swing.SwingUtilities;
@@ -31,7 +29,6 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import java.awt.BorderLayout;
-import java.awt.CardLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
@@ -89,49 +86,9 @@ public class DocConfig implements Configurable {
     private JTextArea fieldTemplate;
 
     /**
-     * 类AI提示词文本框
-     */
-    private JTextArea classPrompt;
-
-    /**
-     * 方法AI提示词文本框
-     */
-    private JTextArea methodPrompt;
-
-    /**
-     * 字段AI提示词文本框
-     */
-    private JTextArea fieldPrompt;
-
-    /**
      * 包模板文本框
      */
     private JTextArea packageTemplate;
-
-    /**
-     * 包AI提示词文本框
-     */
-    private JTextArea packagePrompt;
-
-    /**
-     * 模板类型切换面板
-     */
-    private JPanel templateCardPanel;
-
-    /**
-     * 卡片布局管理器
-     */
-    private CardLayout templateCardLayout;
-
-    /**
-     * Velocity模板单选按钮
-     */
-    private JRadioButton velocityRadio;
-
-    /**
-     * AI提示词单选按钮
-     */
-    private JRadioButton aiPromptRadio;
 
     /**
      * 自定义变量表格
@@ -239,11 +196,7 @@ public class DocConfig implements Configurable {
                 !Objects.equals(this.classTemplate.getText(), config.classTemplate) ||
                 !Objects.equals(this.methodTemplate.getText(), config.methodTemplate) ||
                 !Objects.equals(this.fieldTemplate.getText(), config.fieldTemplate) ||
-                !Objects.equals(this.classPrompt.getText(), config.classPrompt) ||
-                !Objects.equals(this.methodPrompt.getText(), config.methodPrompt) ||
-                !Objects.equals(this.fieldPrompt.getText(), config.fieldPrompt) ||
                 !Objects.equals(this.packageTemplate.getText(), config.packageTemplate) ||
-                !Objects.equals(this.packagePrompt.getText(), config.packagePrompt) ||
                 this.isCustomVarsModified(config) ||
                 this.saveListener.isSelected() != config.saveListener ||
                 this.nonStandardDoc.isSelected() != config.nonStandardDoc;
@@ -273,12 +226,6 @@ public class DocConfig implements Configurable {
         config.methodTemplate = this.methodTemplate.getText();
         config.fieldTemplate = this.fieldTemplate.getText();
         config.packageTemplate = this.packageTemplate.getText();
-
-        // 保存AI提示词
-        config.classPrompt = this.classPrompt.getText();
-        config.methodPrompt = this.methodPrompt.getText();
-        config.fieldPrompt = this.fieldPrompt.getText();
-        config.packagePrompt = this.packagePrompt.getText();
 
         config.nonStandardDoc = this.nonStandardDoc.isSelected();
 
@@ -367,34 +314,7 @@ public class DocConfig implements Configurable {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(BorderFactory.createTitledBorder("模板配置"));
 
-        // 创建模板类型切换面板
-        JPanel switchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        this.velocityRadio = new JRadioButton("Velocity模板", true);
-        this.aiPromptRadio = new JRadioButton("AI提示词模板");
-
-        ButtonGroup group = new ButtonGroup();
-        group.add(this.velocityRadio);
-        group.add(this.aiPromptRadio);
-
-        switchPanel.add(this.velocityRadio);
-        switchPanel.add(this.aiPromptRadio);
-        panel.add(switchPanel, BorderLayout.NORTH);
-
-        // 创建卡片布局面板
-        this.templateCardLayout = new CardLayout();
-        this.templateCardPanel = new JPanel(this.templateCardLayout);
-
-        // 添加Velocity模板面板
-        this.templateCardPanel.add(this.createVelocityTemplatesPanel(), "VELOCITY");
-
-        // 添加AI提示词面板
-        this.templateCardPanel.add(this.createAIPromptsPanel(), "AI_PROMPT");
-
-        panel.add(this.templateCardPanel, BorderLayout.CENTER);
-
-        // 添加切换监听器
-        this.velocityRadio.addActionListener(e -> this.templateCardLayout.show(this.templateCardPanel, "VELOCITY"));
-        this.aiPromptRadio.addActionListener(e -> this.templateCardLayout.show(this.templateCardPanel, "AI_PROMPT"));
+        panel.add(this.createVelocityTemplatesPanel(), BorderLayout.CENTER);
 
         return panel;
     }
@@ -441,52 +361,6 @@ public class DocConfig implements Configurable {
         JPanel packagePanel = this.createTemplateSection("包模板", 150);
         this.packageTemplate = (JTextArea) ((JBScrollPane) packagePanel.getComponent(0)).getViewport().getView();
         panel.add(packagePanel, gbc);
-
-        return panel;
-    }
-
-    /**
-     * 创建AI提示词面板
-     *
-     * @return AI提示词面板
-     * @since 1.0.0
-     */
-    private JPanel createAIPromptsPanel() {
-        JPanel panel = new JPanel(new GridBagLayout());
-
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.BOTH;
-        gbc.insets = JBUI.insets(5);
-        gbc.weightx = 1.0;
-
-        // 类注释提示词
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.weighty = 0.25;
-        JPanel classPromptPanel = this.createTemplateSection("类注释提示词", 150);
-        this.classPrompt = (JTextArea) ((JBScrollPane) classPromptPanel.getComponent(0)).getViewport().getView();
-        panel.add(classPromptPanel, gbc);
-
-        // 方法注释提示词
-        gbc.gridy = 1;
-        gbc.weighty = 0.25;
-        JPanel methodPromptPanel = this.createTemplateSection("方法注释提示词", 150);
-        this.methodPrompt = (JTextArea) ((JBScrollPane) methodPromptPanel.getComponent(0)).getViewport().getView();
-        panel.add(methodPromptPanel, gbc);
-
-        // 字段注释提示词
-        gbc.gridy = 2;
-        gbc.weighty = 0.25;
-        JPanel fieldPromptPanel = this.createTemplateSection("字段注释提示词", 150);
-        this.fieldPrompt = (JTextArea) ((JBScrollPane) fieldPromptPanel.getComponent(0)).getViewport().getView();
-        panel.add(fieldPromptPanel, gbc);
-
-        // 包注释提示词
-        gbc.gridy = 3;
-        gbc.weighty = 0.25;
-        JPanel packagePromptPanel = this.createTemplateSection("包注释提示词", 150);
-        this.packagePrompt = (JTextArea) ((JBScrollPane) packagePromptPanel.getComponent(0)).getViewport().getView();
-        panel.add(packagePromptPanel, gbc);
 
         return panel;
     }
@@ -717,12 +591,6 @@ public class DocConfig implements Configurable {
         this.methodTemplate.setText(config.methodTemplate);
         this.fieldTemplate.setText(config.fieldTemplate);
         this.packageTemplate.setText(config.packageTemplate);
-
-        // 加载AI提示词
-        this.classPrompt.setText(config.classPrompt);
-        this.methodPrompt.setText(config.methodPrompt);
-        this.fieldPrompt.setText(config.fieldPrompt);
-        this.packagePrompt.setText(config.packagePrompt);
 
         // 加载自定义变量到表格
         this.customVarTableModel.setRowCount(0);

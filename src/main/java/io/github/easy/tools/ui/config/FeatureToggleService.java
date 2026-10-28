@@ -18,10 +18,9 @@ import org.jetbrains.annotations.Nullable;
  *
  * <p>功能模块列表：</p>
  * <ul>
- *     <li>JavaDoc注释模块: 文档注释生成相关功能(6个开关)</li>
+ *     <li>JavaDoc注释模块: 文档注释生成相关功能(4个开关)</li>
  *     <li>MyBatis增强模块: XML编辑增强功能(6个开关)</li>
- *     <li>API管理模块: Spring MVC接口管理功能(2个开关)</li>
- *     <li>代码生成模块: AI驱动的代码生成功能(1个开关)</li>
+ *     <li>API管理模块: Spring MVC接口管理功能(1个开关)</li>
  *     <li>属性转换模块: 命名格式转换功能(1个开关)</li>
  *     <li>项目视图模块: 项目树增强功能(1个开关)</li>
  * </ul>
@@ -45,16 +44,6 @@ public final class FeatureToggleService implements PersistentStateComponent<Feat
      * 生成元素注释功能开关
      */
     public boolean generateElementCommentEnabled = true;
-
-    /**
-     * AI生成文件注释功能开关
-     */
-    public boolean generateFileCommentByAiEnabled = true;
-
-    /**
-     * AI生成元素注释功能开关
-     */
-    public boolean generateElementCommentByAiEnabled = true;
 
     /**
      * 删除元素注释功能开关
@@ -111,14 +100,6 @@ public final class FeatureToggleService implements PersistentStateComponent<Feat
      * <p>快速搜索和跳转Spring MVC接口</p>
      */
     public boolean apiSearchActionEnabled = true;
-
-    // ========== 代码生成功能 ==========
-
-    /**
-     * AI代码生成功能开关
-     * <p>基于数据库表结构的AI代码生成</p>
-     */
-    public boolean aiCodeGenerationEnabled = true;
 
     // ========== 属性转换功能 ==========
 
@@ -182,22 +163,6 @@ public final class FeatureToggleService implements PersistentStateComponent<Feat
 
     public void setGenerateElementCommentEnabled(boolean generateElementCommentEnabled) {
         this.generateElementCommentEnabled = generateElementCommentEnabled;
-    }
-
-    public boolean isGenerateFileCommentByAiEnabled() {
-        return this.generateFileCommentByAiEnabled;
-    }
-
-    public void setGenerateFileCommentByAiEnabled(boolean generateFileCommentByAiEnabled) {
-        this.generateFileCommentByAiEnabled = generateFileCommentByAiEnabled;
-    }
-
-    public boolean isGenerateElementCommentByAiEnabled() {
-        return this.generateElementCommentByAiEnabled;
-    }
-
-    public void setGenerateElementCommentByAiEnabled(boolean generateElementCommentByAiEnabled) {
-        this.generateElementCommentByAiEnabled = generateElementCommentByAiEnabled;
     }
 
     public boolean isRemoveElementCommentsEnabled() {
@@ -288,15 +253,5 @@ public final class FeatureToggleService implements PersistentStateComponent<Feat
 
     public void setMybatisSqlTagGenerationEnabled(boolean mybatisSqlTagGenerationEnabled) {
         this.mybatisSqlTagGenerationEnabled = mybatisSqlTagGenerationEnabled;
-    }
-
-    // ========== 代码生成功能 Getter/Setter ==========
-
-    public boolean isAiCodeGenerationEnabled() {
-        return this.aiCodeGenerationEnabled;
-    }
-
-    public void setAiCodeGenerationEnabled(boolean aiCodeGenerationEnabled) {
-        this.aiCodeGenerationEnabled = aiCodeGenerationEnabled;
     }
 }

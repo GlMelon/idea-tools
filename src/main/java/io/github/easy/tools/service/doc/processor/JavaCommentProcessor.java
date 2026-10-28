@@ -100,27 +100,4 @@ public class JavaCommentProcessor implements CommentProcessor {
     public void generateElementComment(PsiFile file, PsiElement element) {
         this.generateElementComment(file, element, true);
     }
-
-    /**
-     * 使用AI生成整个文件的注释
-     *
-     * @param file 需要生成注释的文件
-     * @since y.y.y
-     */
-    @Override
-    public void generateFileCommentByAi(PsiFile file) {
-        this.strategy.generateByAi(file);
-    }
-
-    /**
-     * 使用AI生成指定元素的注释
-     *
-     * @param file    需要生成注释的文件
-     * @param element 需要生成注释的元素
-     * @since y.y.y
-     */
-    @Override
-    public void generateElementCommentByAi(PsiFile file, PsiElement element) {
-        this.strategy.generateByAi(file, element);
-    }
 }

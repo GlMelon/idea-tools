@@ -8,7 +8,6 @@ import com.intellij.openapi.components.StoragePathMacros;
 import com.intellij.openapi.project.Project;
 import com.intellij.util.text.DateFormatUtil;
 import com.intellij.util.xmlb.XmlSerializerUtil;
-import io.github.easy.tools.constants.PromptConstants;
 import io.github.easy.tools.utils.TemplateUtils;
 import lombok.Data;
 import org.jetbrains.annotations.NotNull;
@@ -203,26 +202,6 @@ public final class DocConfigService implements PersistentStateComponent<DocConfi
      * 是否添加非标准注释
      */
     public boolean nonStandardDoc = true;
-
-    /**
-     * AI类注释生成提示词模板
-     */
-    public String classPrompt = PromptConstants.DEFAULT_CLASS_PROMPT;
-
-    /**
-     * AI方法注释生成提示词模板
-     */
-    public String methodPrompt = PromptConstants.DEFAULT_METHOD_PROMPT;
-
-    /**
-     * AI字段注释生成提示词模板
-     */
-    public String fieldPrompt = PromptConstants.DEFAULT_FIELD_PROMPT;
-
-    /**
-     * AI包注释生成提示词模板
-     */
-    public String packagePrompt = PromptConstants.DEFAULT_PACKAGE_PROMPT;
 
     /**
      * 自定义变量实体，用于持久化存储自定义变量的名称、描述和值
