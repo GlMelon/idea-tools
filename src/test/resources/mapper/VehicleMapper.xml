@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  车辆基本信息 Mapper XML —— MyBatisCodeHelper-Pro 迁移功能验证 Fixture
+  数据库表: park_dev.vehicle (通过 DBX MCP 连接的真实数据源)
+  列结构与 2026-10-28 describe_table 结果一致, 共 21 列。
+-->
+<mapper namespace="com.parkdev.vehicle.mapper.VehicleMapper">
+
+    <!-- 通用结果映射: 验证 resultMap 引用、result property 列-属性映射检测(MyBatisResultMapInspection) -->
+    <resultMap id="vehicleResultMap" type="com.parkdev.vehicle.entity.Vehicle">
+        <id column="id" property="id"/>
+        <result column="asset_id" property="assetId"/>
+        <result column="number" property="number"/>
+        <result column="license" property="license"/>
+        <result column="type" property="type"/>
+        <result column="category" property="category"/>
+        <result column="sub_category" property="subCategory"/>
+        <result column="gearbox_type" property="gearboxType"/>
+        <result column="oil_type" property="oilType"/>
+        <result column="operation_type" property="operationType"/>
+        <result column="attachment_ids" property="attachmentIds"/>
+        <result column="has_device" property="hasDevice"/>
+        <result column="extend" property="extend"/>
+        <result column="creator" property="creator"/>
+        <result column="dept_id" property="deptId"/>
+        <result column="updater" property="updater"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+        <result column="special_type" property="specialType"/>
+        <result column="project_id" property="projectId"/>
+    </resultMap>
+
+    <!-- SQL 片段: 验证 <include refid> 引用与 MyBatisSqlRefIdReference 跳转 -->
+    <sql id="baseColumns">
+        id, asset_id, number, license, type, category, sub_category, gearbox_type, oil_type,
+        operation_type, attachment_ids, has_device, extend, creator, dept_id, updater,
+        create_time, update_time, deleted, special_type, project_id
+    </sql>
+
+    <!-- 按主键查询: 验证 #{} 参数引用跳转(MyBatisParamReference) 与 resultMap 属性引用 -->
+    <select id="selectById" resultMap="vehicleResultMap">
+        SELECT
+        <include refid="baseColumns"/>
+        FROM vehicle
+        WHERE id = #{id}
+    </select>
+
+    <!-- 条件查询: 验证 <where>/<if> 动态 SQL、OGNL 表达式检测(MyBatisOgnlInspection) -->
+    <select id="selectByCondition" resultMap="vehicleResultMap">
+        SELECT
+        <include refid="baseColumns"/>
+        FROM vehicle
+        <where>
+            <if test="license != null and license != ''">
+                AND license = #{license}
+            </if>
+            <if test="type != null">
+                AND type = #{type}
+            </if>
+            <if test="projectId != null">
+                AND project_id = #{projectId}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 查询全部 -->
+    <select id="selectAll" resultMap="vehicleResultMap">
+        SELECT
+        <include refid="baseColumns"/>
+        FROM vehicle
+        WHERE deleted = 0
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 新增: 验证 parameterType 类型引用、useGeneratedKeys/keyProperty、<trim> 动态列 -->
+    <insert id="insertVehicle" parameterType="com.parkdev.vehicle.entity.Vehicle"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vehicle
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="assetId != null">asset_id,</if>
+            <if test="number != null">number,</if>
+            <if test="license != null">license,</if>
+            <if test="type != null">type,</if>
+            <if test="category != null">category,</if>
+            <if test="subCategory != null">sub_category,</if>
+            <if test="gearboxType != null">gearbox_type,</if>
+            <if test="oilType != null">oil_type,</if>
+            <if test="operationType != null">operation_type,</if>
+            <if test="attachmentIds != null">attachment_ids,</if>
+            <if test="hasDevice != null">has_device,</if>
+            <if test="extend != null">extend,</if>
+            <if test="creator != null">creator,</if>
+            <if test="deptId != null">dept_id,</if>
+            <if test="updater != null">updater,</if>
+            <if test="specialType != null">special_type,</if>
+            <if test="projectId != null">project_id,</if>
+        </trim>
+        <trim prefix="VALUES (" suffix=")" suffixOverrides=",">
+            <if test="assetId != null">#{assetId},</if>
+            <if test="number != null">#{number},</if>
+            <if test="license != null">#{license},</if>
+            <if test="type != null">#{type},</if>
+            <if test="category != null">#{category},</if>
+            <if test="subCategory != null">#{subCategory},</if>
+            <if test="gearboxType != null">#{gearboxType},</if>
+            <if test="oilType != null">#{oilType},</if>
+            <if test="operationType != null">#{operationType},</if>
+            <if test="attachmentIds != null">#{attachmentIds},</if>
+            <if test="hasDevice != null">#{hasDevice},</if>
+            <if test="extend != null">#{extend},</if>
+            <if test="creator != null">#{creator},</if>
+            <if test="deptId != null">#{deptId},</if>
+            <if test="updater != null">#{updater},</if>
+            <if test="specialType != null">#{specialType},</if>
+            <if test="projectId != null">#{projectId},</if>
+        </trim>
+    </insert>
+
+    <!-- 更新: 验证 <set> 动态标签 -->
+    <update id="updateVehicle" parameterType="com.parkdev.vehicle.entity.Vehicle">
+        UPDATE vehicle
+        <set>
+            <if test="number != null">number = #{number},</if>
+            <if test="license != null">license = #{license},</if>
+            <if test="type != null">type = #{type},</if>
+            <if test="category != null">category = #{category},</if>
+            <if test="subCategory != null">sub_category = #{subCategory},</if>
+            <if test="gearboxType != null">gearbox_type = #{gearboxType},</if>
+            <if test="oilType != null">oil_type = #{oilType},</if>
+            <if test="operationType != null">operation_type = #{operationType},</if>
+            <if test="attachmentIds != null">attachment_ids = #{attachmentIds},</if>
+            <if test="hasDevice != null">has_device = #{hasDevice},</if>
+            <if test="extend != null">extend = #{extend},</if>
+            <if test="updater != null">updater = #{updater},</if>
+            <if test="specialType != null">special_type = #{specialType},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 按主键删除(逻辑删除风格: 用主键值标记) -->
+    <delete id="deleteById">
+        UPDATE vehicle
+        SET deleted = id
+        WHERE id = #{id}
+    </delete>
+
+    <!-- foreach 集合查询: 验证 foreach collection/item 的参数引用与 OGNL -->
+    <select id="selectByIdList" resultMap="vehicleResultMap">
+        SELECT
+        <include refid="baseColumns"/>
+        FROM vehicle
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <!-- 聚合统计: 验证 SQL 函数与方言注入 -->
+    <select id="countByDept" resultType="int">
+        SELECT COUNT(*)
+        FROM vehicle
+        WHERE dept_id = #{deptId}
+          AND deleted = 0
+    </select>
+
+    <!--
+      故意多出的语句: 接口中不存在 selectGhost 方法,
+      用于验证 MyBatisStatementIdInspection (XML 语句 id 在 Mapper 接口中无对应方法)。
+      验证完成后可删除本语句。
+    -->
+    <select id="selectGhost" resultMap="vehicleResultMap">
+        SELECT
+        <include refid="baseColumns"/>
+        FROM vehicle
+        WHERE license = 'GHOST-000'
+    </select>
+
+</mapper>
