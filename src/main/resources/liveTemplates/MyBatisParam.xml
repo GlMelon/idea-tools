@@ -1,0 +1,38 @@
+<templateSet group="MyBatis-Param">
+    <template name="pp" value="#{$PARAM$$END$}"
+              description="#{} 预编译参数占位符" toReformat="false" toShortenFQNames="true">
+        <variable name="PARAM" expression="" defaultValue="&quot;param&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+    <template name="ppj" value="#{$PARAM$, jdbcType=$JDBC$$END$}"
+              description="#{} 占位符(带 jdbcType)" toReformat="false" toShortenFQNames="true">
+        <variable name="PARAM" expression="" defaultValue="&quot;param&quot;" alwaysStopAt="true"/>
+        <variable name="JDBC" expression="" defaultValue="&quot;VARCHAR&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+    <template name="dd" value="${$PARAM$$END$}"
+              description="${} 字符串替换占位符" toReformat="false" toShortenFQNames="true">
+        <variable name="PARAM" expression="" defaultValue="&quot;columnName&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+    <template name="like" value="concat('%', #{$PARAM$, jdbcType=VARCHAR}, '%')$END$"
+              description="concat 模糊查询(通用写法)" toReformat="false" toShortenFQNames="true">
+        <variable name="PARAM" expression="" defaultValue="&quot;keyword&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+    <template name="likem" value="'%' || #{$PARAM$, jdbcType=VARCHAR} || '%'$END$"
+              description="|| 模糊查询(Oracle/PG 写法)" toReformat="false" toShortenFQNames="true">
+        <variable name="PARAM" expression="" defaultValue="&quot;keyword&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+</templateSet>

@@ -11,7 +11,6 @@ import com.intellij.psi.PsiIdentifier;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.xml.XmlFile;
 import com.intellij.psi.xml.XmlTag;
-import io.github.easy.tools.service.mybatis.MapperXmlCacheService;
 import io.github.easy.tools.utils.MyBatisUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -27,16 +26,6 @@ import java.util.Collections;
  * @since 1.0.0
  */
 public class MapperLineMarkerProvider extends RelatedItemLineMarkerProvider {
-
-    /**
-     * MyBatis的@Mapper注解完全限定名
-     */
-    private static final String MAPPER_ANNOTATION = "org.apache.ibatis.annotations.Mapper";
-
-    /**
-     * Spring的@Mapper注解完全限定名（MyBatis-Spring Boot）
-     */
-    private static final String SPRING_MAPPER_ANNOTATION = "org.mybatis.spring.annotation.Mapper";
 
     /**
      * 收集导航标记信息
@@ -67,18 +56,6 @@ public class MapperLineMarkerProvider extends RelatedItemLineMarkerProvider {
     }
 
     /**
-     * 检查类是否有@Mapper注解
-     *
-     * @param psiClass 要检查的类
-     * @return true如果有@Mapper注解
-     * @since 1.0.0
-     */
-    private boolean hasMapperAnnotation(PsiClass psiClass) {
-        return psiClass.hasAnnotation(MAPPER_ANNOTATION) ||
-                psiClass.hasAnnotation(SPRING_MAPPER_ANNOTATION);
-    }
-
-    /**
      * 处理类级别的导航（Mapper接口 -> XML文件）
      *
      * @param element 标识符元素
@@ -94,8 +71,8 @@ public class MapperLineMarkerProvider extends RelatedItemLineMarkerProvider {
             return;
         }
 
-        // 检查是否有@Mapper注解
-        if (!this.hasMapperAnnotation(psiClass)) {
+        // 检查是否为Mapper接口(@Mapper/@MapperScan/框架BaseMapper)
+        if (!MyBatisUtils.isMapperInterface(psiClass)) {
             return;
         }
 
@@ -106,14 +83,7 @@ public class MapperLineMarkerProvider extends RelatedItemLineMarkerProvider {
         }
 
         // 从缓存中查找对应的XML文件
-        MapperXmlCacheService cacheService = MapperXmlCacheService.getInstance(element.getProject());
-
-        // 如果缓存为空，先扫描
-        if (cacheService.isCacheEmpty()) {
-            cacheService.scanAndCacheMapperXmlFiles();
-        }
-
-        XmlFile xmlFile = cacheService.getXmlFileByNamespace(qualifiedName);
+        XmlFile xmlFile = MyBatisUtils.findMapperXmlFile(element.getProject(), qualifiedName);
         if (xmlFile == null) {
             return;
         }
@@ -145,8 +115,8 @@ public class MapperLineMarkerProvider extends RelatedItemLineMarkerProvider {
             return;
         }
 
-        // 检查是否有@Mapper注解
-        if (!this.hasMapperAnnotation(containingClass)) {
+        // 检查是否为Mapper接口(@Mapper/@MapperScan/框架BaseMapper)
+        if (!MyBatisUtils.isMapperInterface(containingClass)) {
             return;
         }
 
@@ -157,15 +127,10 @@ public class MapperLineMarkerProvider extends RelatedItemLineMarkerProvider {
         }
 
         // 从缓存中查找对应的XML文件
-        MapperXmlCacheService cacheService = MapperXmlCacheService.getInstance(element.getProject());
-        if (cacheService.isCacheEmpty()) {
-            cacheService.scanAndCacheMapperXmlFiles();
-        }
-
-        XmlFile xmlFile = cacheService.getXmlFileByNamespace(qualifiedName);
+        XmlFile xmlFile = MyBatisUtils.findMapperXmlFile(element.getProject(), qualifiedName);
         if (xmlFile == null) {
             // 如果当前接口没有对应的XML文件，尝试在父接口中查找
-            XmlTag sqlTag = this.findSqlTagInParentInterfaces(containingClass, psiMethod.getName(), cacheService);
+            XmlTag sqlTag = this.findSqlTagInParentInterfaces(containingClass, psiMethod.getName());
             if (sqlTag != null) {
                 // 创建导航标记
                 NavigationGutterIconBuilder<PsiElement> builder = NavigationGutterIconBuilder
@@ -183,7 +148,7 @@ public class MapperLineMarkerProvider extends RelatedItemLineMarkerProvider {
         XmlTag sqlTag = MyBatisUtils.findSqlTagByMethodName(xmlFile, psiMethod.getName());
         if (sqlTag == null) {
             // 如果当前XML文件中没有找到，尝试在父接口的XML文件中查找
-            sqlTag = this.findSqlTagInParentInterfaces(containingClass, psiMethod.getName(), cacheService);
+            sqlTag = this.findSqlTagInParentInterfaces(containingClass, psiMethod.getName());
             if (sqlTag == null) {
                 return;
             }
@@ -213,12 +178,10 @@ public class MapperLineMarkerProvider extends RelatedItemLineMarkerProvider {
      *
      * @param psiClass 当前接口类
      * @param methodName 方法名
-     * @param cacheService 缓存服务
      * @return 找到的SQL标签，未找到返回null
      * @since 1.0.0
      */
-    private XmlTag findSqlTagInParentInterfaces(@NotNull PsiClass psiClass, @NotNull String methodName,
-                                               @NotNull MapperXmlCacheService cacheService) {
+    private XmlTag findSqlTagInParentInterfaces(@NotNull PsiClass psiClass, @NotNull String methodName) {
         // 获取所有父接口
         PsiClass[] supers = psiClass.getSupers();
         for (PsiClass superClass : supers) {
@@ -232,7 +195,7 @@ public class MapperLineMarkerProvider extends RelatedItemLineMarkerProvider {
             }
 
             // 查找父接口对应的XML文件
-            XmlFile superXmlFile = cacheService.getXmlFileByNamespace(superQualifiedName);
+            XmlFile superXmlFile = MyBatisUtils.findMapperXmlFile(superClass.getProject(), superQualifiedName);
             if (superXmlFile != null) {
                 // 在父接口的XML文件中查找SQL标签
                 XmlTag sqlTag = MyBatisUtils.findSqlTagByMethodName(superXmlFile, methodName);
@@ -242,7 +205,7 @@ public class MapperLineMarkerProvider extends RelatedItemLineMarkerProvider {
             }
 
             // 递归查找更上层的父接口
-            XmlTag sqlTag = this.findSqlTagInParentInterfaces(superClass, methodName, cacheService);
+            XmlTag sqlTag = this.findSqlTagInParentInterfaces(superClass, methodName);
             if (sqlTag != null) {
                 return sqlTag;
             }

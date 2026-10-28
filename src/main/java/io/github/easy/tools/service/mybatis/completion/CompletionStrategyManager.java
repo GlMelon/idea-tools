@@ -3,6 +3,8 @@ package io.github.easy.tools.service.mybatis.completion;
 import com.intellij.codeInsight.completion.CompletionResultSet;
 import io.github.easy.tools.service.mybatis.completion.strategy.FieldCompletionStrategy;
 import io.github.easy.tools.service.mybatis.completion.strategy.ParameterCompletionStrategy;
+import io.github.easy.tools.service.mybatis.completion.strategy.PlaceholderPropertyCompletionStrategy;
+import io.github.easy.tools.service.mybatis.completion.strategy.SqlKeywordCompletionStrategy;
 import io.github.easy.tools.service.mybatis.completion.strategy.TagTemplateCompletionStrategy;
 import org.jetbrains.annotations.NotNull;
 
@@ -57,11 +59,13 @@ public class CompletionStrategyManager {
      * @since 1.0.0
      */
     private void registerStrategies() {
-        // 注意顺序:标签模板 > 字段 > 参数
-        // 因为标签模板最特殊,需要优先匹配
+        // 注意顺序:占位符属性 > 标签模板 > 字段 > 参数 > SQL关键字
+        // 因为标签模板最特殊,需要优先匹配; SQL关键字与参数补全并存
+        this.strategies.add(new PlaceholderPropertyCompletionStrategy());
         this.strategies.add(new TagTemplateCompletionStrategy());
         this.strategies.add(new FieldCompletionStrategy());
         this.strategies.add(new ParameterCompletionStrategy());
+        this.strategies.add(new SqlKeywordCompletionStrategy());
     }
 
     /**

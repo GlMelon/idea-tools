@@ -132,6 +132,18 @@ public class CompletionContext {
         KEYWORD_ONLY,
 
         /**
+         * #{} 占位符内的属性配置补全(如 #{param, jdbcType=...})
+         *
+         */
+        PLACEHOLDER_PROPERTY,
+
+        /**
+         * SQL 关键字补全(语句文本中的 SELECT/FROM 等)
+         *
+         */
+        SQL_KEYWORD,
+
+        /**
          * 普通文本
          *
          */

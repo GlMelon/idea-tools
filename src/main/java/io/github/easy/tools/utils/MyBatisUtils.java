@@ -19,10 +19,16 @@ import com.intellij.psi.PsiTypeParameter;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PropertyUtilBase;
 import com.intellij.psi.util.PsiTypesUtil;
+import com.intellij.psi.xml.XmlAttribute;
+import com.intellij.psi.xml.XmlAttributeValue;
 import com.intellij.psi.xml.XmlFile;
 import com.intellij.psi.xml.XmlTag;
+import io.github.easy.tools.service.mybatis.MapperXmlCacheService;
+import io.github.easy.tools.service.mybatis.MyBatisMapperScanService;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.Set;
 
 /**
  * My Batis Utils
@@ -35,12 +41,308 @@ import org.jetbrains.annotations.Nullable;
 public final class MyBatisUtils {
 
     /**
+     * MyBatis 语句标签(select/insert/update/delete)，这些标签的id对应Mapper接口方法
+     *
+     * @since 1.1.0
+     */
+    public static final Set<String> STATEMENT_TAGS = Set.of("select", "insert", "update", "delete");
+
+    /**
+     * MyBatis的@Mapper注解完全限定名
+     *
+     * @since 1.1.0
+     */
+    private static final String MAPPER_ANNOTATION = "org.apache.ibatis.annotations.Mapper";
+
+    /**
+     * Spring的@Mapper注解完全限定名（MyBatis-Spring）
+     *
+     * @since 1.1.0
+     */
+    private static final String SPRING_MAPPER_ANNOTATION = "org.mybatis.spring.annotation.Mapper";
+
+    /**
+     * MyBatis-Plus / MyBatis-Flex / tk-mapper 等框架的 BaseMapper 基础接口完全限定名
+     * <p>这些接口的方法由框架动态提供 SQL，无需 XML 语句。</p>
+     *
+     * @since 1.2.0
+     */
+    private static final Set<String> FRAMEWORK_BASE_MAPPERS = Set.of(
+            "com.baomidou.mybatisplus.core.mapper.BaseMapper",
+            "com.mybatisflex.core.BaseMapper",
+            "tk.mybatis.mapper.common.Mapper",
+            "tk.mybatis.mapper.common.BaseMapper",
+            "tk.mybatis.mapper.common.MySqlMapper",
+            "tk.mybatis.mapper.common.SqlServerMapper",
+            "tk.mybatis.mapper.common.OracleMapper",
+            "tk.mybatis.mapper.common.PostgresqlMapper",
+            "tk.mybatis.mapper.common.IdsMapper",
+            "tk.mybatis.mapper.common.ConditionMapper",
+            "tk.mybatis.mapper.common.ExampleMapper",
+            "tk.mybatis.mapper.common.RowMapper"
+    );
+
+    /**
+     * tk-mapper 通用 Mapper 接口包前缀(兼容其按数据库拆分的更多模块接口)
+     *
+     * @since 1.2.0
+     */
+    private static final String TK_MAPPER_PACKAGE = "tk.mybatis.mapper.common.";
+
+    /**
+     * 注解方式编写SQL的注解集合，带这些注解的方法无需XML语句
+     *
+     * @since 1.1.0
+     */
+    private static final Set<String> SQL_ANNOTATIONS = Set.of(
+            "org.apache.ibatis.annotations.Select",
+            "org.apache.ibatis.annotations.Insert",
+            "org.apache.ibatis.annotations.Update",
+            "org.apache.ibatis.annotations.Delete",
+            "org.apache.ibatis.annotations.SelectProvider",
+            "org.apache.ibatis.annotations.InsertProvider",
+            "org.apache.ibatis.annotations.UpdateProvider",
+            "org.apache.ibatis.annotations.DeleteProvider"
+    );
+
+    /**
      * 私有构造函数，防止实例化
      *
      * @since 1.0.0
      */
     private MyBatisUtils() {
         throw new UnsupportedOperationException("Utility class");
+    }
+
+    /**
+     * 判断标签名是否为MyBatis语句标签(select/insert/update/delete)
+     *
+     * @param tagName 标签名
+     * @return true如果是语句标签
+     * @since 1.1.0
+     */
+    public static boolean isStatementTag(@Nullable String tagName) {
+        return tagName != null && STATEMENT_TAGS.contains(tagName);
+    }
+
+    /**
+     * 判断类是否为Mapper接口
+     * <p>
+     * 满足以下任一条件即视为Mapper接口:
+     * <ul>
+     * <li>带 @Mapper(org.apache.ibatis) 或 @Mapper(org.mybatis.spring) 注解</li>
+     * <li>继承 MyBatis-Plus / MyBatis-Flex / tk-mapper 等框架的 BaseMapper</li>
+     * <li>被项目 @MapperScan 的扫描包覆盖(含 annotationClass/markerInterface 过滤)</li>
+     * </ul>
+     *
+     * @param psiClass 类
+     * @return true如果是Mapper接口
+     * @since 1.1.0
+     */
+    public static boolean isMapperInterface(@Nullable PsiClass psiClass) {
+        if (psiClass == null || !psiClass.isInterface()) {
+            return false;
+        }
+        if (psiClass.hasAnnotation(MAPPER_ANNOTATION)
+                || psiClass.hasAnnotation(SPRING_MAPPER_ANNOTATION)) {
+            return true;
+        }
+        if (extendsFrameworkBaseMapper(psiClass)) {
+            return true;
+        }
+        return MyBatisMapperScanService.getInstance(psiClass.getProject()).isScannedMapper(psiClass);
+    }
+
+    /**
+     * 判断接口是否(间接)继承了 MyBatis-Plus / MyBatis-Flex / tk-mapper 等框架的 BaseMapper
+     *
+     * @param psiClass 接口
+     * @return true如果继承了框架 BaseMapper
+     * @since 1.2.0
+     */
+    public static boolean extendsFrameworkBaseMapper(@Nullable PsiClass psiClass) {
+        if (psiClass == null || !psiClass.isInterface()) {
+            return false;
+        }
+        String fqn = psiClass.getQualifiedName();
+        if (fqn != null && (FRAMEWORK_BASE_MAPPERS.contains(fqn) || fqn.startsWith(TK_MAPPER_PACKAGE))) {
+            return true;
+        }
+        for (PsiClass superClass : psiClass.getSupers()) {
+            if (extendsFrameworkBaseMapper(superClass)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 判断方法是否由框架 BaseMapper(MyBatis-Plus/Flex/tk-mapper)提供
+     * <p>框架接口中的方法由框架动态生成 SQL，不参与"缺SQL语句"等 XML 一致性检测。</p>
+     *
+     * @param method 方法
+     * @return true如果方法声明于框架 BaseMapper(或其包内)
+     * @since 1.2.0
+     */
+    public static boolean isFrameworkMapperMethod(@Nullable PsiMethod method) {
+        if (method == null) {
+            return false;
+        }
+        PsiClass containingClass = method.getContainingClass();
+        String fqn = containingClass == null ? null : containingClass.getQualifiedName();
+        return fqn != null
+                && (FRAMEWORK_BASE_MAPPERS.contains(fqn) || fqn.startsWith(TK_MAPPER_PACKAGE));
+    }
+
+    /**
+     * 判断方法是否使用注解方式编写SQL(@Select/@Insert等)
+     *
+     * @param method 方法
+     * @return true如果带SQL注解
+     * @since 1.1.0
+     */
+    public static boolean hasSqlAnnotation(@NotNull PsiMethod method) {
+        for (String annotationFqn : SQL_ANNOTATIONS) {
+            if (method.hasAnnotation(annotationFqn)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 根据namespace查找对应的Mapper XML文件(基于缓存，缓存未初始化时自动扫描一次)
+     * <p>
+     * 注意: 使用 {@code isInitialized} 而非 {@code isCacheEmpty} 判断，
+     * 避免项目中不存在Mapper XML时缓存永远为空、每次调用都触发全量扫描。
+     * </p>
+     *
+     * @param project   项目
+     * @param namespace Mapper接口完全限定名
+     * @return 对应的XmlFile，未找到返回null
+     * @since 1.1.0
+     */
+    public static @Nullable XmlFile findMapperXmlFile(@NotNull Project project, @Nullable String namespace) {
+        if (StringUtil.isEmpty(namespace)) {
+            return null;
+        }
+        MapperXmlCacheService cacheService = MapperXmlCacheService.getInstance(project);
+        if (!cacheService.isInitialized()) {
+            cacheService.scanAndCacheMapperXmlFiles();
+        }
+        return cacheService.getXmlFileByNamespace(namespace);
+    }
+
+    /**
+     * 在XML文件中根据标签名和id查找标签(如查找resultMap/sql标签)
+     *
+     * @param xmlFile XML文件
+     * @param tagName 标签名
+     * @param id      标签id
+     * @return 找到的标签，未找到返回null
+     * @since 1.1.0
+     */
+    public static @Nullable XmlTag findTagByTagNameAndId(@NotNull XmlFile xmlFile,
+                                                         @NotNull String tagName,
+                                                         @NotNull String id) {
+        XmlTag rootTag = xmlFile.getRootTag();
+        if (rootTag == null) {
+            return null;
+        }
+        for (XmlTag tag : rootTag.getSubTags()) {
+            if (tagName.equals(tag.getName()) && id.equals(tag.getAttributeValue("id"))) {
+                return tag;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 获取标签id属性的值元素(用于精确定位跳转)
+     *
+     * @param tag XML标签
+     * @return id属性值元素，未找到返回null
+     * @since 1.1.0
+     */
+    public static @Nullable XmlAttributeValue getIdAttributeValue(@Nullable XmlTag tag) {
+        if (tag == null) {
+            return null;
+        }
+        XmlAttribute idAttribute = tag.getAttribute("id");
+        return idAttribute == null ? null : idAttribute.getValueElement();
+    }
+
+    /**
+     * 根据完全限定名查找类
+     *
+     * @param context 上下文元素(提供项目和解析范围)
+     * @param fqn     完全限定名
+     * @return 找到的类，未找到返回null
+     * @since 1.1.0
+     */
+    public static @Nullable PsiClass findClassByQualifiedName(@NotNull PsiElement context, @Nullable String fqn) {
+        if (StringUtil.isEmpty(fqn)) {
+            return null;
+        }
+        return JavaPsiFacade.getInstance(context.getProject()).findClass(fqn, context.getResolveScope());
+    }
+
+    /**
+     * 在类层次结构中按名称查找方法(包括父接口中定义的方法)
+     *
+     * @param psiClass   起始类
+     * @param methodName 方法名
+     * @return 找到的方法，未找到返回null
+     * @since 1.1.0
+     */
+    public static @Nullable PsiMethod findMethodInHierarchy(@Nullable PsiClass psiClass, @NotNull String methodName) {
+        if (psiClass == null) {
+            return null;
+        }
+        for (PsiMethod method : psiClass.getAllMethods()) {
+            if (method.getName().equals(methodName)) {
+                PsiClass declaringClass = method.getContainingClass();
+                // 跳过java.lang.Object中的方法
+                String declaringFqn = declaringClass == null ? null : declaringClass.getQualifiedName();
+                if (declaringFqn == null || declaringFqn.startsWith("java.")) {
+                    continue;
+                }
+                return method;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 在Mapper接口及其父接口对应的XML文件中查找SQL语句标签
+     *
+     * @param mapperClass Mapper接口
+     * @param methodName  方法名
+     * @return 找到的SQL标签，未找到返回null
+     * @since 1.1.0
+     */
+    public static @Nullable XmlTag findSqlTagInHierarchy(@NotNull PsiClass mapperClass, @NotNull String methodName) {
+        String qualifiedName = mapperClass.getQualifiedName();
+        if (qualifiedName != null) {
+            XmlFile xmlFile = findMapperXmlFile(mapperClass.getProject(), qualifiedName);
+            if (xmlFile != null) {
+                XmlTag sqlTag = findSqlTagByMethodName(xmlFile, methodName);
+                if (sqlTag != null) {
+                    return sqlTag;
+                }
+            }
+        }
+
+        for (PsiClass superClass : mapperClass.getSupers()) {
+            if (!superClass.isInterface()) {
+                continue;
+            }
+            XmlTag sqlTag = findSqlTagInHierarchy(superClass, methodName);
+            if (sqlTag != null) {
+                return sqlTag;
+            }
+        }
+        return null;
     }
 
     /**
@@ -198,16 +500,69 @@ public final class MyBatisUtils {
      * @since 1.0.0
      */
     public static @Nullable XmlTag findSqlTag(@NotNull XmlTag xmlTag) {
+        return findSqlTag(xmlTag, false);
+    }
+
+    /**
+     * 向上查找SQL标签(select/insert/update/delete，可选包含sql片段标签)
+     *
+     * @param xmlTag       当前XML标签
+     * @param includeSqlFrag 是否包含sql片段标签
+     * @return SQL标签，未找到返回null
+     * @since 1.1.0
+     */
+    public static @Nullable XmlTag findSqlTag(@NotNull XmlTag xmlTag, boolean includeSqlFrag) {
         XmlTag current = xmlTag;
         while (current != null) {
             String tagName = current.getName();
             if ("select".equals(tagName) || "insert".equals(tagName) ||
-                    "update".equals(tagName) || "delete".equals(tagName)) {
+                    "update".equals(tagName) || "delete".equals(tagName) ||
+                    (includeSqlFrag && "sql".equals(tagName))) {
                 return current;
             }
             current = current.getParentTag();
         }
         return null;
+    }
+
+    /**
+     * 向上查找所属的 resultMap 标签
+     * <p>
+     * result/id/collection/association/discriminator 等映射子标签
+     * 通过本方法定位其所属的 resultMap 定义。
+     * </p>
+     *
+     * @param xmlTag 当前XML标签
+     * @return resultMap标签，未找到返回null
+     * @since 1.1.0
+     */
+    public static @Nullable XmlTag findEnclosingResultMap(@NotNull XmlTag xmlTag) {
+        XmlTag current = xmlTag;
+        while (current != null) {
+            if ("resultMap".equals(current.getName())) {
+                return current;
+            }
+            current = current.getParentTag();
+        }
+        return null;
+    }
+
+    /**
+     * 解析 resultMap 定义对应的 Java 类型
+     *
+     * @param resultMapTag resultMap标签
+     * @param context      上下文元素(提供解析范围)
+     * @return 类型对应的PsiClass，未找到返回null
+     * @since 1.1.0
+     */
+    public static @Nullable PsiClass resolveResultMapType(@NotNull XmlTag resultMapTag,
+                                                          @NotNull PsiElement context) {
+        String type = resultMapTag.getAttributeValue("type");
+        if (StringUtil.isEmpty(type)) {
+            return null;
+        }
+        return JavaPsiFacade.getInstance(context.getProject())
+                .findClass(type, context.getResolveScope());
     }
 
     /**

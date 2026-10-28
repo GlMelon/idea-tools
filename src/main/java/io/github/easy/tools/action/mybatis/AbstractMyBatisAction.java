@@ -8,7 +8,6 @@ import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
-import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
@@ -19,10 +18,9 @@ import com.intellij.psi.xml.XmlTag;
 import io.github.easy.tools.action.conversion.PropertyNameConverter;
 import io.github.easy.tools.entity.doc.ParameterInfo;
 import io.github.easy.tools.service.doc.velocity.VelocityTemplateRenderer;
-import io.github.easy.tools.service.mybatis.MapperXmlCacheService;
+
 import io.github.easy.tools.utils.MyBatisUtils;
 import io.github.easy.tools.utils.NotificationUtil;
-import io.github.easy.tools.utils.StrConverter;
 import org.apache.velocity.VelocityContext;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -207,14 +205,7 @@ public abstract class AbstractMyBatisAction extends AnAction {
         if (qualifiedName == null) {
             return null;
         }
-
-        Project project = mapperClass.getProject();
-        MapperXmlCacheService cacheService = MapperXmlCacheService.getInstance(project);
-        if (cacheService.isCacheEmpty()) {
-            cacheService.scanAndCacheMapperXmlFiles();
-        }
-
-        return cacheService.getXmlFileByNamespace(qualifiedName);
+        return MyBatisUtils.findMapperXmlFile(mapperClass.getProject(), qualifiedName);
     }
 
     /**

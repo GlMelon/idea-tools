@@ -7,7 +7,6 @@ import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.text.StringUtil;
-import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
@@ -17,7 +16,6 @@ import com.intellij.util.IncorrectOperationException;
 import io.github.easy.tools.action.conversion.PropertyNameConverter;
 import io.github.easy.tools.entity.doc.ParameterInfo;
 import io.github.easy.tools.service.doc.velocity.VelocityTemplateRenderer;
-import io.github.easy.tools.service.mybatis.MapperXmlCacheService;
 import io.github.easy.tools.utils.MyBatisUtils;
 import io.github.easy.tools.utils.NotificationUtil;
 import org.apache.velocity.VelocityContext;
@@ -38,16 +36,6 @@ import java.util.List;
  * @since 1.0.0
  */
 public abstract class MyBatisIntentionAction extends PsiElementBaseIntentionAction implements IntentionAction {
-
-    /**
-     * MyBatis的@Mapper注解完全限定名
-     */
-    private static final String MAPPER_ANNOTATION = "org.apache.ibatis.annotations.Mapper";
-
-    /**
-     * Spring的@Mapper注解完全限定名
-     */
-    private static final String SPRING_MAPPER_ANNOTATION = "org.mybatis.spring.annotation.Mapper";
 
     /**
      * Velocity模板渲染器
@@ -94,8 +82,8 @@ public abstract class MyBatisIntentionAction extends PsiElementBaseIntentionActi
             return;
         }
 
-        if (!this.hasMapperAnnotation(mapperClass)) {
-            NotificationUtil.showWarning(project, "当前接口没有@Mapper注解");
+        if (!MyBatisUtils.isMapperInterface(mapperClass)) {
+            NotificationUtil.showWarning(project, "当前接口不是Mapper接口(@Mapper/@MapperScan/BaseMapper)");
             return;
         }
 
@@ -125,7 +113,7 @@ public abstract class MyBatisIntentionAction extends PsiElementBaseIntentionActi
             return false;
         }
 
-        return this.hasMapperAnnotation(mapperClass);
+        return MyBatisUtils.isMapperInterface(mapperClass);
     }
 
     @Override
@@ -182,17 +170,6 @@ public abstract class MyBatisIntentionAction extends PsiElementBaseIntentionActi
     }
 
     /**
-     * 检查类是否有@Mapper注解
-     *
-     * @param psiClass 类
-     * @return true如果有@Mapper注解
-     */
-    private boolean hasMapperAnnotation(@NotNull PsiClass psiClass) {
-        return psiClass.hasAnnotation(MAPPER_ANNOTATION) ||
-                psiClass.hasAnnotation(SPRING_MAPPER_ANNOTATION);
-    }
-
-    /**
      * 查找Mapper接口对应的XML文件
      *
      * @param mapperClass Mapper接口类
@@ -203,14 +180,7 @@ public abstract class MyBatisIntentionAction extends PsiElementBaseIntentionActi
         if (qualifiedName == null) {
             return null;
         }
-
-        Project project = mapperClass.getProject();
-        MapperXmlCacheService cacheService = MapperXmlCacheService.getInstance(project);
-        if (cacheService.isCacheEmpty()) {
-            cacheService.scanAndCacheMapperXmlFiles();
-        }
-
-        return cacheService.getXmlFileByNamespace(qualifiedName);
+        return MyBatisUtils.findMapperXmlFile(mapperClass.getProject(), qualifiedName);
     }
 
     /**

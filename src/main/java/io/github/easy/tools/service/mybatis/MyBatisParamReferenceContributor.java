@@ -77,11 +77,6 @@ public class MyBatisParamReferenceContributor extends PsiReferenceContributor {
     private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("[#$]\\{([^}]+)}");
 
     /**
-     * MyBatis include标签refid属性值提取正则 (提取refid="someId"中的someId)
-     */
-    private static final Pattern INCLUDE_REFID_PATTERN = Pattern.compile("^([a-zA-Z_$][a-zA-Z0-9_$]*)$");
-
-    /**
      * Register Reference Providers
      *
      * @param registrar registrar
@@ -167,10 +162,8 @@ public class MyBatisParamReferenceContributor extends PsiReferenceContributor {
             return;
         }
 
-        // 特殊处理：include标签的refid属性
+        // include标签的refid属性由 MyBatisMapperReferenceContributor 提供结构化引用(跳转到sql片段)，此处跳过
         if ("include".equals(tagName) && "refid".equals(attrName)) {
-            Matcher matcher = INCLUDE_REFID_PATTERN.matcher(valueText);
-            this.extractReferencesFromPlaceholder(matcher, attributeValue, valueText, references);
             return;
         }
 

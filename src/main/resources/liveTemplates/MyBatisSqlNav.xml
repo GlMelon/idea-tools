@@ -1,0 +1,74 @@
+<templateSet group="MyBatis-SqlNav">
+    <template name="whr" value="&lt;where&gt;&#10;    $END$&#10;&lt;/where&gt;"
+              description="MyBatis where 动态标签" toReformat="false" toShortenFQNames="true">
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+    <template name="ifn" value="&lt;if test=&quot;$PARAM$ != null&quot;&gt;&#10;    and $COLUMN$ = #{$PARAM$}$END$&#10;&lt;/if&gt;"
+              description="if test 不为空" toReformat="false" toShortenFQNames="true">
+        <variable name="PARAM" expression="" defaultValue="&quot;param&quot;" alwaysStopAt="true"/>
+        <variable name="COLUMN" expression="" defaultValue="" alwaysStopAt="true"/>
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+    <template name="ifns" value="&lt;if test=&quot;$PARAM$ != null and $PARAM$ != ''&quot;&gt;&#10;    and $COLUMN$ = #{$PARAM$}$END$&#10;&lt;/if&gt;"
+              description="if test 不为空且不为空串" toReformat="false" toShortenFQNames="true">
+        <variable name="PARAM" expression="" defaultValue="&quot;param&quot;" alwaysStopAt="true"/>
+        <variable name="COLUMN" expression="" defaultValue="" alwaysStopAt="true"/>
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+    <template name="feach" value="&lt;foreach collection=&quot;$COLLECTION$&quot; item=&quot;$ITEM$&quot; index=&quot;$INDEX$&quot; open=&quot;$OPEN$&quot; separator=&quot;$SEPARATOR$&quot; close=&quot;$CLOSE$&quot;&gt;&#10;    #{$ITEM$}$END$&#10;&lt;/foreach&gt;"
+              description="MyBatis foreach 标签" toReformat="false" toShortenFQNames="true">
+        <variable name="COLLECTION" expression="" defaultValue="&quot;list&quot;" alwaysStopAt="true"/>
+        <variable name="ITEM" expression="" defaultValue="&quot;item&quot;" alwaysStopAt="true"/>
+        <variable name="INDEX" expression="" defaultValue="&quot;index&quot;" alwaysStopAt="true"/>
+        <variable name="OPEN" expression="" defaultValue="&quot;(&quot;" alwaysStopAt="true"/>
+        <variable name="SEPARATOR" expression="" defaultValue="&quot;,&quot;" alwaysStopAt="true"/>
+        <variable name="CLOSE" expression="" defaultValue="&quot;)&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+    <template name="feachi" value="&lt;foreach collection=&quot;$COLLECTION$&quot; item=&quot;$ITEM$&quot; separator=&quot;;&quot;&gt;&#10;    insert into $TABLE$ values(#{$ITEM$})$END$&#10;&lt;/foreach&gt;"
+              description="foreach 批量 insert" toReformat="false" toShortenFQNames="true">
+        <variable name="COLLECTION" expression="" defaultValue="&quot;list&quot;" alwaysStopAt="true"/>
+        <variable name="ITEM" expression="" defaultValue="&quot;item&quot;" alwaysStopAt="true"/>
+        <variable name="TABLE" expression="" defaultValue="" alwaysStopAt="true"/>
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+    <template name="choo" value="&lt;choose&gt;&#10;    &lt;when test=&quot;$CONDITION$&quot;&gt;&#10;        $END$&#10;    &lt;/when&gt;&#10;    &lt;otherwise&gt;&#10;        &#10;    &lt;/otherwise&gt;&#10;&lt;/choose&gt;"
+              description="MyBatis choose/when/otherwise" toReformat="false" toShortenFQNames="true">
+        <variable name="CONDITION" expression="" defaultValue="&quot;param != null&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+    <template name="sett" value="&lt;set&gt;&#10;    $END$&#10;&lt;/set&gt;"
+              description="MyBatis set 动态标签" toReformat="false" toShortenFQNames="true">
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+    <template name="trimw" value="&lt;trim prefix=&quot;$PREFIX$&quot; prefixOverrides=&quot;$OVERRIDES$&quot;&gt;&#10;    $END$&#10;&lt;/trim&gt;"
+              description="MyBatis trim 标签" toReformat="false" toShortenFQNames="true">
+        <variable name="PREFIX" expression="" defaultValue="&quot;where&quot;" alwaysStopAt="true"/>
+        <variable name="OVERRIDES" expression="" defaultValue="&quot;and |or &quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+    <template name="bind" value="&lt;bind name=&quot;$NAME$&quot; value=&quot;$VALUE$&quot;/&gt;$END$"
+              description="MyBatis bind 变量绑定" toReformat="false" toShortenFQNames="true">
+        <variable name="NAME" expression="" defaultValue="&quot;pattern&quot;" alwaysStopAt="true"/>
+        <variable name="VALUE" expression="" defaultValue="&quot;'%' + param + '%'&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+</templateSet>

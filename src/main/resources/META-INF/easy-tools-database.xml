@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  可选数据源模块(Ultimate): 依赖 com.intellij.database，
+  由 plugin.xml 中 <depends optional="true" config-file="easy-tools-database.xml"> 声明。
+  Community 环境下本模块不加载，核心功能自动降级。
+-->
+<idea-plugin>
+    <id>io.github.easy.tools.database</id>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- 向 Mapper XML 语句文本注入 SQL 语言(关键字/表/列补全与检查依赖数据源) -->
+        <multiHostInjector implementation="io.github.easy.tools.mybatis.database.MyBatisSqlInjectionContributor"/>
+    </extensions>
+
+    <extensions defaultExtensionNs="io.github.easy.tools">
+        <!-- 运行 SQL 临时文件的方言解析: 返回 SQL 语言 -->
+        <mybatis.sqlDialectResolver implementation="io.github.easy.tools.mybatis.database.DatabaseSqlDialectResolver"/>
+    </extensions>
+</idea-plugin>

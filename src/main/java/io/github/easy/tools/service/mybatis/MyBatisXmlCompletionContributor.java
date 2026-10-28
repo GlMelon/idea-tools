@@ -66,6 +66,17 @@ public class MyBatisXmlCompletionContributor extends CompletionContributor {
     ));
 
     /**
+     * 不做参数补全的结构属性集合
+     * <p>这些属性的值是结构引用(id/类型/resultMap等)，由专门的引用贡献者提供补全</p>
+     */
+    private static final Set<String> EXCLUDED_STRUCTURAL_ATTRIBUTES = new HashSet<>(Arrays.asList(
+            "id", "refid", "resultMap", "parameterMap", "parameterType", "resultType",
+            "type", "extends", "keyProperty", "keyColumn", "useGeneratedKeys",
+            "flushCache", "timeout", "statementType", "resultSetType", "fetchSize",
+            "resultOrdered", "lang", "databaseId"
+    ));
+
+    /**
      * 构造函数,注册代码补全提供器
      * 统一注册一个补全提供器,在内部区分是属性还是文本内容
      *
@@ -326,6 +337,11 @@ public class MyBatisXmlCompletionContributor extends CompletionContributor {
                 return false;
             }
 
+            // 结构属性(id/resultMap/类型等)不做参数补全，由专门的引用贡献者处理
+            if (EXCLUDED_STRUCTURAL_ATTRIBUTES.contains(attribute.getName())) {
+                return false;
+            }
+
             // 从属性的父标签开始向上查找SQL相关标签
             XmlTag tag = attribute.getParent();
             while (tag != null) {
@@ -550,10 +566,10 @@ public class MyBatisXmlCompletionContributor extends CompletionContributor {
             MyBatisExpressionParser.ExpressionParseResult parseResult =
                     MyBatisExpressionParser.parseForCompletion(currentText);
 
-            // 决定补全类型
+            // 决定补全类型(expressionStartOffset>=0 表示处于#{}表达式内)
             CompletionContext.CompletionType completionType = this.determineCompletionType(
-                    currentText, parseResult, isInXmlAttribute);
-
+                    currentText, parseResult, isInXmlAttribute,
+                    textResult.getExpressionStartOffset() >= 0);
             // 提取标签信息
             String tagName = null;
             String attributeName = null;
@@ -593,6 +609,7 @@ public class MyBatisXmlCompletionContributor extends CompletionContributor {
          * @param currentText      当前文本
          * @param parseResult      解析结果
          * @param isInXmlAttribute 是否在XML属性中
+         * @param inPlaceholder    是否处于#{}表达式内
          * @return 补全类型
          * @since 1.0.0
          */
@@ -600,13 +617,26 @@ public class MyBatisXmlCompletionContributor extends CompletionContributor {
         private CompletionContext.CompletionType determineCompletionType(
                 @NotNull String currentText,
                 @NotNull MyBatisExpressionParser.ExpressionParseResult parseResult,
-                boolean isInXmlAttribute) {
+                boolean isInXmlAttribute,
+                boolean inPlaceholder) {
+
+            // #{} 占位符内的属性配置: #{param, jdbcType=...
+            if (inPlaceholder && currentText.contains(",")) {
+                return CompletionContext.CompletionType.PLACEHOLDER_PROPERTY;
+            }
 
             // 如果在XML属性中，不支持标签模板和关键字补全
             if (isInXmlAttribute) {
+                // 属性值中输入占位符属性(如 test="#{id, jdbcType=) 的场景
+                String trimmed = currentText.trim();
+                int eq = trimmed.indexOf('=');
+                String keyPart = eq >= 0 ? trimmed.substring(0, eq) : trimmed;
+                if (io.github.easy.tools.service.mybatis.MyBatisParamSpec.PROPERTY_KEYS.contains(keyPart)) {
+                    return CompletionContext.CompletionType.PLACEHOLDER_PROPERTY;
+                }
                 // 在属性中，如果包含点号就是字段补全，否则是参数补全
-                return currentText.contains(".") ? 
-                    CompletionContext.CompletionType.FIELD : 
+                return currentText.contains(".") ?
+                    CompletionContext.CompletionType.FIELD :
                     CompletionContext.CompletionType.PARAMETER;
             }
 

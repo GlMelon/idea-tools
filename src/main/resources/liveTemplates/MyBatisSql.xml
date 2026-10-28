@@ -1,0 +1,91 @@
+<templateSet group="MyBatis-SQL">
+    <template name="sel" value="&lt;select id=&quot;$ID$&quot; resultType=&quot;$TYPE$&quot;&gt;&#10;    select$END$&#10;&lt;/select&gt;"
+              description="MyBatis select 语句" toReformat="false" toShortenFQNames="true">
+        <variable name="ID" expression="" defaultValue="&quot;selectById&quot;" alwaysStopAt="true"/>
+        <variable name="TYPE" expression="" defaultValue="" alwaysStopAt="true"/>
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+    <template name="selr" value="&lt;select id=&quot;$ID$&quot; resultMap=&quot;$MAP$&quot;&gt;&#10;    select$END$&#10;&lt;/select&gt;"
+              description="MyBatis select 语句(resultMap)" toReformat="false" toShortenFQNames="true">
+        <variable name="ID" expression="" defaultValue="&quot;selectXxx&quot;" alwaysStopAt="true"/>
+        <variable name="MAP" expression="" defaultValue="&quot;baseResultMap&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+    <template name="ins" value="&lt;insert id=&quot;$ID$&quot; parameterType=&quot;$TYPE$&quot; useGeneratedKeys=&quot;true&quot; keyProperty=&quot;$KEY$&quot;&gt;&#10;    insert into $TABLE$ ($COLUMNS$)&#10;    values ($VALUES$)$END$&#10;&lt;/insert&gt;"
+              description="MyBatis insert 语句(自增主键)" toReformat="false" toShortenFQNames="true">
+        <variable name="ID" expression="" defaultValue="&quot;insert&quot;" alwaysStopAt="true"/>
+        <variable name="TYPE" expression="" defaultValue="" alwaysStopAt="true"/>
+        <variable name="KEY" expression="" defaultValue="&quot;id&quot;" alwaysStopAt="true"/>
+        <variable name="TABLE" expression="" defaultValue="" alwaysStopAt="true"/>
+        <variable name="COLUMNS" expression="" defaultValue="" alwaysStopAt="true"/>
+        <variable name="VALUES" expression="" defaultValue="" alwaysStopAt="true"/>
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+    <template name="upd" value="&lt;update id=&quot;$ID$&quot; parameterType=&quot;$TYPE$&quot;&gt;&#10;    update $TABLE$&#10;    $END$&#10;&lt;/update&gt;"
+              description="MyBatis update 语句" toReformat="false" toShortenFQNames="true">
+        <variable name="ID" expression="" defaultValue="&quot;update&quot;" alwaysStopAt="true"/>
+        <variable name="TYPE" expression="" defaultValue="" alwaysStopAt="true"/>
+        <variable name="TABLE" expression="" defaultValue="" alwaysStopAt="true"/>
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+    <template name="del" value="&lt;delete id=&quot;$ID$&quot; parameterType=&quot;$TYPE$&quot;&gt;&#10;    delete from $TABLE$&#10;    $END$&#10;&lt;/delete&gt;"
+              description="MyBatis delete 语句" toReformat="false" toShortenFQNames="true">
+        <variable name="ID" expression="" defaultValue="&quot;delete&quot;" alwaysStopAt="true"/>
+        <variable name="TYPE" expression="" defaultValue="" alwaysStopAt="true"/>
+        <variable name="TABLE" expression="" defaultValue="" alwaysStopAt="true"/>
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+    <template name="sqlf" value="&lt;sql id=&quot;$ID$&quot;&gt;&#10;    $END$&#10;&lt;/sql&gt;"
+              description="MyBatis sql 片段" toReformat="false" toShortenFQNames="true">
+        <variable name="ID" expression="" defaultValue="&quot;base_columns&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+    <template name="inc" value="&lt;include refid=&quot;$REFID$&quot;/&gt;$END$"
+              description="MyBatis include 引用" toReformat="false" toShortenFQNames="true">
+        <variable name="REFID" expression="" defaultValue="&quot;base_columns&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+    <template name="incp" value="&lt;include refid=&quot;$REFID$&quot;&gt;&#10;    &lt;property name=&quot;$NAME$&quot; value=&quot;$VALUE$&quot;/&gt;&#10;&lt;/include&gt;$END$"
+              description="MyBatis include(带 property)" toReformat="false" toShortenFQNames="true">
+        <variable name="REFID" expression="" defaultValue="&quot;base_columns&quot;" alwaysStopAt="true"/>
+        <variable name="NAME" expression="" defaultValue="&quot;alias&quot;" alwaysStopAt="true"/>
+        <variable name="VALUE" expression="" defaultValue="&quot;t&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+    <template name="rm" value="&lt;resultMap id=&quot;$ID$&quot; type=&quot;$TYPE$&quot;&gt;&#10;    &lt;id column=&quot;$ID_COLUMN$&quot; property=&quot;$ID_PROPERTY$&quot; jdbcType=&quot;$ID_JDBC$&quot;/&gt;&#10;    $END$&#10;&lt;/resultMap&gt;"
+              description="MyBatis resultMap" toReformat="false" toShortenFQNames="true">
+        <variable name="ID" expression="" defaultValue="&quot;baseResultMap&quot;" alwaysStopAt="true"/>
+        <variable name="TYPE" expression="" defaultValue="" alwaysStopAt="true"/>
+        <variable name="ID_COLUMN" expression="" defaultValue="&quot;id&quot;" alwaysStopAt="true"/>
+        <variable name="ID_PROPERTY" expression="" defaultValue="&quot;id&quot;" alwaysStopAt="true"/>
+        <variable name="ID_JDBC" expression="" defaultValue="&quot;BIGINT&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+    <template name="rmc" value="&lt;result column=&quot;$COLUMN$&quot; property=&quot;$PROPERTY$&quot; jdbcType=&quot;$JDBC$&quot;/&gt;$END$"
+              description="MyBatis result 映射列" toReformat="false" toShortenFQNames="true">
+        <variable name="COLUMN" expression="" defaultValue="" alwaysStopAt="true"/>
+        <variable name="PROPERTY" expression="" defaultValue="" alwaysStopAt="true"/>
+        <variable name="JDBC" expression="" defaultValue="&quot;VARCHAR&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+</templateSet>

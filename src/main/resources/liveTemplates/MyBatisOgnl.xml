@@ -1,0 +1,59 @@
+<templateSet group="MyBatis-OGNL">
+    <template name="tn" value="$PARAM$ != null$END$"
+              description="OGNL: 参数不为空" toReformat="false" toShortenFQNames="true">
+        <variable name="PARAM" expression="" defaultValue="&quot;param&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+    <template name="tns" value="$PARAM$ != null and $PARAM$ != ''$END$"
+              description="OGNL: 参数不为空且不为空串" toReformat="false" toShortenFQNames="true">
+        <variable name="PARAM" expression="" defaultValue="&quot;param&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+    <template name="nul" value="$PARAM$ == null$END$"
+              description="OGNL: 参数为空" toReformat="false" toShortenFQNames="true">
+        <variable name="PARAM" expression="" defaultValue="&quot;param&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+    <template name="ems" value="$PARAM$ == ''$END$"
+              description="OGNL: 参数为空串" toReformat="false" toShortenFQNames="true">
+        <variable name="PARAM" expression="" defaultValue="&quot;param&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+    <template name="andn" value="and $PARAM$ != null$END$"
+              description="OGNL: and 条件拼接" toReformat="false" toShortenFQNames="true">
+        <variable name="PARAM" expression="" defaultValue="&quot;param&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+    <template name="orn" value="or $PARAM$ != null$END$"
+              description="OGNL: or 条件拼接" toReformat="false" toShortenFQNames="true">
+        <variable name="PARAM" expression="" defaultValue="&quot;param&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+    <template name="sz" value="$PARAM$.size() &gt; 0$END$"
+              description="OGNL: 集合非空判断" toReformat="false" toShortenFQNames="true">
+        <variable name="PARAM" expression="" defaultValue="&quot;list&quot;" alwaysStopAt="true"/>
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+    <template name="eqs" value="$PARAM$ == &quot;$VALUE$&quot;$END$"
+              description="OGNL: 字符串相等(双引号写法)" toReformat="false" toShortenFQNames="true">
+        <variable name="PARAM" expression="" defaultValue="&quot;param&quot;" alwaysStopAt="true"/>
+        <variable name="VALUE" expression="" defaultValue="" alwaysStopAt="true"/>
+        <context>
+            <option name="XML" value="true"/>
+        </context>
+    </template>
+</templateSet>
