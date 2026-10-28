@@ -3,7 +3,7 @@
     <trim prefix="(" suffix=")" suffixOverrides=",">
 #if($parameters && $parameters.size() > 0)
 #foreach($param in $parameters)
-        <if test="${param.name} != null">
+        <if test="${param.shortName} != null">
             ${param.columnName},
         </if>
 #end
@@ -12,8 +12,8 @@
     <trim prefix="VALUES (" suffix=")" suffixOverrides=",">
 #if($parameters && $parameters.size() > 0)
 #foreach($param in $parameters)
-        <if test="${param.name} != null">
-            #{${param.name}},
+        <if test="${param.shortName} != null">
+            #{${param.shortName}},
         </if>
 #end
 #end

@@ -6,8 +6,8 @@
     <where>
 #if($parameters && $parameters.size() > 0)
 #foreach($param in $parameters)
-        <if test="${param.name} != null">
-            AND ${param.columnName} = #{${param.name}}
+        <if test="${param.shortName} != null">
+            AND ${param.columnName} = #{${param.shortName}}
         </if>
 #end
 #end

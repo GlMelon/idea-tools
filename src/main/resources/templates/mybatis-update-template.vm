@@ -3,8 +3,8 @@
     <set>
 #if($parameters && $parameters.size() > 0)
 #foreach($param in $parameters)
-        <if test="${param.name} != null">
-            ${param.columnName} = #{${param.name}},
+        <if test="${param.shortName} != null">
+            ${param.columnName} = #{${param.shortName}},
         </if>
 #end
 #end
